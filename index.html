@@ -1,18 +1,53 @@
-<!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+  <title>Morphing Face (p5 modular)</title>
+  <style>
+    html, body { margin:0; height:100%; overflow:hidden; background:#f7f4ee; font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; }
+    #ui {
+      position: fixed; left: 12px; top: 12px; padding: 10px 12px; background: rgba(255,255,255,.92);
+      border: 1px solid #ddd; border-radius: 10px; backdrop-filter: blur(6px);
+      display: grid; gap: 6px; z-index: 2; max-width: min(92vw, 360px);
+    }
+    #ui label { font-size: 12px; color:#333; }
+    #ui select, #ui button { font-size: 14px; padding: 6px 8px; }
+    #hint { position: fixed; right: 12px; bottom: 12px; color:#666; font-size:12px; }
+    canvas { display:block; }
+  </style>
+</head>
+<body>
 
-    <title>Sketch</title>
+<div id="ui">
+  <strong>Build Your Portrait</strong>
+  <label>Eyes</label>
+  <select id="eyesSel"></select>
 
-    <link rel="stylesheet" type="text/css" href="style.css">
+  <label>Mouth</label>
+  <select id="mouthSel"></select>
 
-    <script src="libraries/p5.min.js"></script>
-    <script src="libraries/p5.sound.min.js"></script>
-  </head>
+  <label>Head Direction</label>
+  <select id="headSel"></select>
 
-  <body>
-    <script src="sketch.js"></script>
-  </body>
+  <div style="display:flex; gap:6px; margin-top:6px;">
+    <button id="randomBtn">Randomize</button>
+    <button id="exportBtn" title="Save current shapes as JSON">Export JSON</button>
+    <input id="importFile" type="file" accept="application/json" style="display:none;">
+    <button id="importBtn" title="Load shapes JSON">Import</button>
+  </div>
+</div>
+
+<div id="hint">Tip: press <b>S</b> to save PNG</div>
+
+<!-- p5 -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.7.0/p5.min.js"></script>
+
+<!-- modules (order matters) -->
+<script src="./morph.js"></script>
+<script src="./shapes.js"></script>
+<script src="./renderer.js"></script>
+<script src="./ui.js"></script>
+<script src="./sketch.js"></script>
+</body>
 </html>

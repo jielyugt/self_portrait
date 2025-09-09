@@ -1,105 +1,73 @@
-let step = 0;
-let headShape = null;
-let mood = null;
+// sketch.js
+(function (root) {
+  const FaceApp = (root.FaceApp = root.FaceApp || {});
+  const { Morph } = FaceApp;
+  const { LIB, exportJSON, importJSONFile } = FaceApp.Shapes;
+  const { composeFace } = FaceApp.Renderer;
+  const { initUI } = FaceApp.UI;
 
-function setup() {
-  createCanvas(400, 400);
-  textAlign(CENTER, CENTER);
-  textSize(24);
-}
+  let headMorph, eyeMorph, mouthMorph;
+  let pg;
 
-function draw() {
-  background("aqua");
+  // p5 global mode
+  window.setup = function () {
+    createCanvas(windowWidth, windowHeight);
+    pg = createGraphics(windowWidth, windowHeight);
 
-  if (step === 0) {
-    // Ask for head shape
-    fill(0);
-    text("Choose head shape:", 200, 120);
-    // Draw buttons
-    fill(255);
-    ellipse(140, 200, 80, 80); // Circle button
-    fill(0);
-    text("Circle", 140, 200);
-    fill(255);
-    rect(220, 160, 80, 80, 10); // Square button
-    fill(0);
-    text("Square", 260, 200);
-  } else if (step === 1) {
-    // Ask for mood
-    fill(0);
-    text("Choose mood:", 200, 120);
-    // Draw buttons
-    fill(255);
-    ellipse(140, 200, 80, 80); // Happy button
-    fill(0);
-    text("Happy", 140, 200);
-    fill(255);
-    ellipse(260, 200, 80, 80); // Sad button
-    fill(0);
-    text("Sad", 260, 200);
-  } else if (step === 2) {
-    // Draw stick figure based on choices
-    drawStickFigure(headShape, mood);
-  }
-}
+    // Morphers
+    headMorph  = new Morph(LIB.head,  'head_front');
+    eyeMorph   = new Morph(LIB.eyes,  'eyes_open');
+    mouthMorph = new Morph(LIB.mouth, 'mouth_neutral');
 
-function mousePressed() {
-  if (step === 0) {
-    // Check which button was clicked
-    if (dist(mouseX, mouseY, 140, 200) < 40) {
-      headShape = "circle";
-      step = 1;
-    } else if (mouseX > 220 && mouseX < 300 && mouseY > 160 && mouseY < 240) {
-      headShape = "square";
-      step = 1;
-    }
-  } else if (step === 1) {
-    if (dist(mouseX, mouseY, 140, 200) < 40) {
-      mood = "happy";
-      step = 2;
-    } else if (dist(mouseX, mouseY, 260, 200) < 40) {
-      mood = "sad";
-      step = 2;
-    }
-  }
-}
+    // UI
+    const initial = initUI(handleChange, () => exportJSON(), (file) => {
+      importJSONFile(file, () => {
+        // Rebuild morphers (keep current selections if still valid)
+        headMorph  = new Morph(LIB.head,  initial.head in LIB.head ? initial.head : Object.keys(LIB.head)[0]);
+        eyeMorph   = new Morph(LIB.eyes,  initial.eyes in LIB.eyes ? initial.eyes : Object.keys(LIB.eyes)[0]);
+        mouthMorph = new Morph(LIB.mouth, initial.mouth in LIB.mouth ? initial.mouth : Object.keys(LIB.mouth)[0]);
+        alert('Shapes imported!');
+      }, () => alert('Invalid JSON.'));
+    });
+  };
 
-function drawStickFigure(shape, mood) {
-  // Body
-  stroke(0);
-  strokeWeight(4);
-  line(200, 250, 200, 350); // torso
-  line(200, 270, 170, 320); // left arm
-  line(200, 270, 230, 320); // right arm
-  line(200, 350, 170, 390); // left leg
-  line(200, 350, 230, 390); // right leg
-
-  // Head
-  noStroke();
-  fill(255, 224, 189);
-  if (shape === "circle") {
-    ellipse(200, 220, 60, 60);
-  } else {
-    rect(170, 190, 60, 60, 10);
+  function handleChange(kind, key) {
+    if (kind === 'head')  headMorph.setTarget(key);
+    if (kind === 'eyes')  eyeMorph.setTarget(key);
+    if (kind === 'mouth') mouthMorph.setTarget(key);
   }
 
-  // Face
-  fill(0);
-  // Eyes
-  if (shape === "circle") {
-    ellipse(190, 220, 8, 8);
-    ellipse(210, 220, 8, 8);
-  } else {
-    ellipse(185, 220, 8, 8);
-    ellipse(215, 220, 8, 8);
-  }
-  // Mouth
-  noFill();
-  stroke(0);
-  strokeWeight(2);
-  if (mood === "happy") {
-    arc(200, 235, 24, 12, 0, PI);
-  } else {
-    arc(200, 240, 24, 12, PI, 0);
-  }
-}
+  window.draw = function () {
+    background('#f7f4ee');
+
+    const dt = deltaTime / 1000;
+    headMorph.update(dt); eyeMorph.update(dt); mouthMorph.update(dt);
+
+    pg.clear();
+
+    const size = Math.min(width, height) * 0.72;
+    const cx = width / 2, cy = height / 2;
+
+    composeFace(pg, {
+      head: headMorph.points(),
+      eyes: eyeMorph.points(),
+      mouth: mouthMorph.points()
+    }, cx, cy, size);
+
+    image(pg, 0, 0);
+
+    headMorph.commitIfDone();
+    eyeMorph.commitIfDone();
+    mouthMorph.commitIfDone();
+  };
+
+  window.windowResized = function () {
+    resizeCanvas(windowWidth, windowHeight);
+    pg = createGraphics(windowWidth, windowHeight);
+  };
+
+  window.keyPressed = function () {
+    if (key.toLowerCase() === 's') saveCanvas('portrait', 'png');
+  };
+
+})(window);

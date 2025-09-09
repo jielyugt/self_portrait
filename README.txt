@@ -1,0 +1,1 @@
+Open index.html in a browser. All modules are in this folder. Edit shapes.js to add your own variants, or use Export/Import JSON in the UI.
