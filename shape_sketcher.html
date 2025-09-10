@@ -1,0 +1,702 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no, maximum-scale=1" />
+  <title>Minimal Shape Sketcher — No Name + Tip bottom-left</title>
+  <style>
+    .unnamed {
+      font-style: italic;
+      color: #444;
+      position: absolute;
+      left: 0;
+      top: 0;
+      pointer-events: none;
+      padding-left: 4px;
+    }
+
+    .meta {
+      position: relative;
+      display: inline-block;
+    }
+
+    html,
+    body {
+      margin: 0;
+      height: 100%;
+      background: #ffffff;
+      color: #000000;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+    }
+
+    #wrap {
+      display: grid;
+      grid-template-columns: 280px 1fr;
+      height: 100%;
+    }
+
+    #panel {
+      display: flex;
+      flex-direction: column;
+      padding: 10px;
+      border-right: 1px solid #000;
+      height: 100vh;
+      min-height: 0;
+      box-sizing: border-box;
+      overflow: auto;
+    }
+
+    .row {
+      display: grid;
+      grid-template-columns: 72px 1fr;
+      gap: 6px;
+      margin-bottom: 8px;
+      align-items: center;
+    }
+
+    label {
+      font-size: 12px;
+    }
+
+    input[type="text"] {
+      background: #fff;
+      color: #000;
+      font-size: 12px;
+      border: none;
+      padding: 0;
+      border-radius: 0;
+      outline: none;
+    }
+
+    input[type="checkbox"] {
+      transform: scale(1.1);
+    }
+
+    button {
+      border: 1px solid #000;
+      background: #fff;
+      color: #000;
+      padding: 6px 8px;
+      cursor: pointer;
+      border-radius: 0;
+    }
+
+    button:active {
+      transform: translateY(1px);
+    }
+
+    #controls {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+      margin-top: auto;
+      margin-bottom: 0;
+    }
+
+    .wide {
+      grid-column: 1 / span 2;
+    }
+
+
+
+    .shapeItem {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border: 1px solid #000;
+      padding: 4px 6px;
+      margin-bottom: 6px;
+    }
+
+    .shapeItem .meta {
+      font-size: 12px;
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+      background: #fff;
+    }
+
+    #canvasWrap {
+      position: relative;
+    }
+
+    input[type="file"] {
+      display: none;
+    }
+
+    /* Tip moved to lower-left of canvas */
+    .hintCanvas {
+      position: fixed;
+      left: 0;
+      bottom: 10px;
+      width: 280px;
+      background: rgba(255, 255, 255, 0.85);
+      border: 1px solid #000;
+      padding: 6px 8px;
+      font-size: 12px;
+      color: #111;
+      line-height: 1.3;
+      pointer-events: none;
+      z-index: 1000;
+      box-sizing: border-box;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div id="wrap">
+    <div id="panel">
+      <div id="shapes"></div>
+      <div id="controls">
+        <!-- Add New Group button removed -->
+        <button id="export">Export JSON</button>
+        <button id="importBtn">Import JSON</button>
+        <input id="importFile" type="file" accept=".json,application/json" />
+      </div>
+    </div>
+    <div id="canvasWrap">
+      <canvas id="c"></canvas>
+    </div>
+    <script>
+      // Minimal Shape Sketcher — Cleaned & Refactored
+      (function () {
+        // --- DOM Elements ---
+
+        // --- Default Template Data ---
+        const defaultTemplate = {
+          "face": [
+            [0.3763, 0.757], [0.2811, 0.7057], [0.1801, 0.5373], [0.3192, 0.3367], [0.5476, 0.2796], [0.7701, 0.429], [0.8346, 0.5915], [0.7965, 0.7247], [0.6384, 0.8038]
+          ],
+          "left_eye": [
+            [0.3353, 0.4246], [0.3982, 0.4524], [0.4436, 0.4392]
+          ],
+          "right_eye": [
+            [0.6105, 0.451], [0.6896, 0.4744], [0.7042, 0.5154]
+          ],
+          "mouse": [
+            [0.4026, 0.6384], [0.4845, 0.6694], [0.4993, 0.6881]
+          ]
+        };
+        const canvas = document.getElementById('c');
+        const ctx = canvas.getContext('2d');
+        const dpr = Math.max(1, window.devicePixelRatio || 1);
+        const btnExport = document.getElementById('export');
+        const btnImport = document.getElementById('importBtn');
+        const inputImport = document.getElementById('importFile');
+        const shapesList = document.getElementById('shapes');
+
+        // --- State ---
+        let width = 0, height = 0, cx = 0, cy = 0, size = 0;
+        let hover = null, drag = null, hoverSeg = null;
+        let currentShapeId = null, nextId = 1;
+        const shapes = [];
+
+        // --- Utility Functions ---
+        function clamp01(v) { return Math.max(0, Math.min(1, Number(v))); }
+        function clamp01pt(p) { return { x: clamp01(p.x), y: clamp01(p.y) }; }
+        function escapeHtml(s) {
+          return String(s).replace(/[&<>"]'/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
+        }
+        function equalsPt(a, b) { return Math.abs(a.x - b.x) < 1e-9 && Math.abs(a.y - b.y) < 1e-9; }
+
+        // --- Canvas Space ---
+        function updateSpace() {
+          const wrap = document.getElementById('canvasWrap');
+          width = wrap.clientWidth;
+          height = wrap.clientHeight;
+          canvas.width = Math.round(width * dpr);
+          canvas.height = Math.round(height * dpr);
+          canvas.style.width = width + 'px';
+          canvas.style.height = height + 'px';
+          ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+          cx = width / 2;
+          cy = height / 2;
+          size = Math.min(width, height);
+          draw();
+        }
+        window.addEventListener('resize', updateSpace, { passive: true });
+        updateSpace();
+
+        // --- Coordinate Mapping ---
+        function toScreen(pt) {
+          return { x: (pt.x - 0.5) * size + cx, y: (pt.y - 0.5) * size + cy };
+        }
+        function toNorm(x, y) {
+          return { x: ((x - cx) / size) + 0.5, y: ((y - cy) / size) + 0.5 };
+        }
+
+        // --- Shape Management ---
+        function startNewShape() {
+          const shape = { id: nextId++, group: '', closed: false, points: [] };
+          shapes.push(shape);
+          currentShapeId = shape.id;
+          renderShapeList();
+          draw();
+        }
+        function finishShape() {
+          const s = shapes.find(s => s.id === currentShapeId);
+          if (s) {
+            if (s.points.length < 2) {
+              shapes.splice(shapes.indexOf(s), 1);
+            } else {
+              let groupName = s.group;
+              if (!groupName || !groupName.trim()) {
+                alert('Please provide a name for the shape before saving.');
+                return;
+              }
+              const normalizedName = groupName.trim().toLowerCase();
+              const isDup = shapes.some(shape => shape.id !== s.id && shape.group && shape.group.trim().toLowerCase() === normalizedName);
+              if (isDup) {
+                alert('A shape with this name already exists. Please choose a unique name.');
+                return;
+              }
+            }
+            currentShapeId = null;
+            renderShapeList();
+            draw();
+          }
+          startNewShape();
+        }
+
+        // --- Hit Testing ---
+        function hitTestPoint(x, y, r = 10) {
+          const r2 = r * r;
+          for (const s of shapes) {
+            for (let i = 0; i < s.points.length; i++) {
+              const P = toScreen(s.points[i]);
+              const dx = P.x - x, dy = P.y - y;
+              if (dx * dx + dy * dy <= r2) return { shapeId: s.id, pointIdx: i };
+            }
+          }
+          return null;
+        }
+        function distToSegment(px, py, ax, ay, bx, by) {
+          const abx = bx - ax, aby = by - ay;
+          const apx = px - ax, apy = py - ay;
+          const ab2 = abx * abx + aby * aby;
+          const t = ab2 > 0 ? Math.max(0, Math.min(1, (apx * abx + apy * aby) / ab2)) : 0;
+          const cx = ax + t * abx, cy = ay + t * aby;
+          const dx = px - cx, dy = py - cy;
+          return { d: Math.hypot(dx, dy), cx, cy, t };
+        }
+        function hitTestSegment(x, y, r = 8) {
+          let best = null;
+          for (const s of shapes) {
+            const P = s.points.map(toScreen);
+            const n = P.length;
+            if (n < 2) continue;
+            const segCount = s.closed ? n : n - 1;
+            for (let i = 0; i < segCount; i++) {
+              const a = P[i], b = P[(i + 1) % n];
+              const { d, cx, cy, t } = distToSegment(x, y, a.x, a.y, b.x, b.y);
+              if (d <= r) {
+                if (!best || d < best.d) best = { shapeId: s.id, segIdx: i, cx, cy, d, t };
+              }
+            }
+          }
+          return best;
+        }
+
+        // --- Canvas Events ---
+        canvas.addEventListener('mousemove', (e) => {
+          const rect = canvas.getBoundingClientRect();
+          const x = e.clientX - rect.left;
+          const y = e.clientY - rect.top;
+          if (drag) {
+            const s = shapes.find(s => s.id === drag.shapeId);
+            if (!s) return;
+            const newPt = clamp01pt(toNorm(x, y));
+            if (s.closed && s.points.length > 2) {
+              s.points[drag.pointIdx] = newPt;
+              // Always enforce closure: first and last points must be identical
+              s.points[0] = s.points[0];
+              s.points[s.points.length - 1] = s.points[0];
+            } else {
+              s.points[drag.pointIdx] = newPt;
+            }
+            draw();
+          } else {
+            hover = hitTestPoint(x, y, 8);
+            hoverSeg = hover ? null : hitTestSegment(x, y, 8);
+            canvas.style.cursor = hover ? 'grab' : (hoverSeg ? 'copy' : 'crosshair');
+            draw();
+          }
+        });
+        canvas.addEventListener('mousedown', (e) => {
+          const rect = canvas.getBoundingClientRect();
+          const x = e.clientX - rect.left;
+          const y = e.clientY - rect.top;
+          // Prevent auto-creating a new shape when dragging points from template
+          let s = null;
+          if (currentShapeId != null) {
+            s = shapes.find(shape => shape.id === currentShapeId);
+            if (!s) return;
+          }
+          // Closing logic removed: clicking near the first point will NOT close the shape
+          // If not closing, check for drag or segment insert
+          const h = hitTestPoint(x, y, 8);
+          if (h) {
+            // Allow dragging any point, including first/last dot of closed shape
+            drag = h;
+            canvas.style.cursor = 'grabbing';
+            return;
+          }
+          const seg = hitTestSegment(x, y, 8);
+          if (seg) {
+            const normPt = clamp01pt(toNorm(seg.cx, seg.cy));
+            currentShapeId = seg.shapeId;
+            const s2 = shapes.find(s => s.id === seg.shapeId);
+            if (s2) {
+              const insertIdx = seg.segIdx + 1;
+              s2.points.splice(insertIdx, 0, normPt);
+              renderShapeList();
+              draw();
+              drag = { shapeId: seg.shapeId, pointIdx: insertIdx };
+              canvas.style.cursor = 'grabbing';
+            }
+            return;
+          }
+          s.points.push(clamp01pt(toNorm(x, y)));
+          if (s) {
+            s.points.push(clamp01pt(toNorm(x, y)));
+            draw();
+            renderShapeList();
+          }
+        });
+        canvas.addEventListener('mouseleave', () => {
+          hover = null; hoverSeg = null;
+          canvas.style.cursor = 'crosshair';
+          draw();
+        });
+        window.addEventListener('mouseup', () => {
+          const wasDragging = !!drag;
+          drag = null;
+          canvas.style.cursor = hover ? 'grab' : (hoverSeg ? 'copy' : 'crosshair');
+          if (wasDragging) renderShapeList();
+        });
+        window.addEventListener('keydown', (e) => {
+          const t = e.target;
+          const isEditable = t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable);
+          if (e.key === 'Enter') {
+            finishShape();
+            e.preventDefault();
+            return;
+          }
+          if ((e.key === 'Delete' || e.key === 'Backspace') && !isEditable) {
+            let shapeToEdit = null;
+            let pointIdx = null;
+            let editingCurrentShape = false;
+            if (drag) {
+              shapeToEdit = shapes.find(s => s.id === drag.shapeId);
+              pointIdx = drag.pointIdx;
+              editingCurrentShape = (drag.shapeId === currentShapeId);
+            } else if (hover) {
+              shapeToEdit = shapes.find(s => s.id === hover.shapeId);
+              pointIdx = hover.pointIdx;
+              editingCurrentShape = (hover.shapeId === currentShapeId);
+            } else if (currentShapeId != null) {
+              shapeToEdit = shapes.find(s => s.id === currentShapeId);
+              pointIdx = shapeToEdit && shapeToEdit.points.length > 0 ? shapeToEdit.points.length - 1 : null;
+              editingCurrentShape = true;
+            }
+            if (shapeToEdit && pointIdx != null && shapeToEdit.points.length > 0) {
+              shapeToEdit.points.splice(pointIdx, 1);
+              // Only unset currentShapeId if we deleted the last point of the current shape
+              if (editingCurrentShape) {
+                if (shapeToEdit.points.length === 0) {
+                  currentShapeId = null;
+                }
+                // else, keep currentShapeId unchanged
+              }
+              // If editing a previous shape, never change currentShapeId
+              drag = null;
+              hover = null;
+              draw();
+              renderShapeList();
+            }
+            e.preventDefault();
+          }
+        });
+
+        // --- Drawing ---
+        function drawPolyline(pts, opts = {}) {
+          const weight = opts.weight ?? 4;
+          ctx.strokeStyle = 'rgb(20,20,20)';
+          ctx.lineWidth = weight;
+          ctx.lineJoin = 'miter';
+          ctx.lineCap = 'butt';
+          const P = pts.map(toScreen);
+          if (P.length === 0) return;
+          ctx.beginPath();
+          ctx.moveTo(P[0].x, P[0].y);
+          for (let i = 1; i < P.length; i++) ctx.lineTo(P[i].x, P[i].y);
+          if (opts.close && P.length > 2) ctx.closePath();
+          ctx.stroke();
+        }
+        function draw() {
+          ctx.clearRect(0, 0, width, height);
+          ctx.fillStyle = '#fff';
+          ctx.fillRect(0, 0, width, height);
+          for (const s of shapes) {
+            const isCurrent = s.id === currentShapeId;
+            drawPolyline(s.points, { weight: isCurrent ? 5 : 4, close: s.closed });
+          }
+          if (drag) {
+            const s = shapes.find(ss => ss.id === drag.shapeId);
+            if (s) {
+              const p = toScreen(s.points[drag.pointIdx]);
+              ctx.fillStyle = '#000';
+              ctx.beginPath();
+              ctx.arc(p.x, p.y, 7, 0, Math.PI * 2);
+              ctx.fill();
+            }
+          } else if (hover) {
+            const s = shapes.find(ss => ss.id === hover.shapeId);
+            if (s) {
+              const p = toScreen(s.points[hover.pointIdx]);
+              ctx.fillStyle = '#000';
+              ctx.beginPath();
+              ctx.arc(p.x, p.y, 7, 0, Math.PI * 2);
+              ctx.fill();
+            }
+          }
+          if (hoverSeg && !drag) {
+            ctx.save();
+            ctx.strokeStyle = 'rgba(0,0,0,0.35)';
+            ctx.setLineDash([6, 6]);
+            const s = shapes.find(ss => ss.id === hoverSeg.shapeId);
+            if (s && s.points.length >= 2) {
+              const P = s.points.map(toScreen);
+              const a = P[hoverSeg.segIdx], b = P[(hoverSeg.segIdx + 1) % P.length];
+              ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+              ctx.setLineDash([]);
+              ctx.fillStyle = '#000';
+              ctx.beginPath();
+              ctx.arc(hoverSeg.cx, hoverSeg.cy, 7, 0, Math.PI * 2);
+              ctx.fill();
+            }
+            ctx.restore();
+          }
+        }
+
+        // --- Export/Import ---
+        function exportJSON() {
+          if (!shapes.length) {
+            alert('No shapes to export.');
+            return;
+          }
+          let name = prompt('Enter a name for this face:');
+          if (!name) {
+            alert('Export cancelled.');
+            return;
+          }
+          name = name.trim().replace(/\s+/g, '_').toLowerCase();
+          if (!name) {
+            alert('Invalid name.');
+            return;
+          }
+          // Save JSON
+          const out = {};
+          for (const s of shapes) {
+            let pts = s.points.map(p => [+p.x.toFixed(4), +p.y.toFixed(4)]);
+            if (s.closed && pts.length > 0) {
+              const f = pts[0], l = pts[pts.length - 1];
+              if (f[0] !== l[0] || f[1] !== l[1]) pts.push([f[0], f[1]]);
+            }
+            out[s.group] = pts;
+          }
+          const jsonBlob = new Blob([JSON.stringify(out, null, 2)], { type: 'application/json' });
+          const jsonUrl = URL.createObjectURL(jsonBlob);
+          const jsonA = document.createElement('a');
+          jsonA.href = jsonUrl;
+          jsonA.download = `face_${name}.json`;
+          document.body.appendChild(jsonA);
+          jsonA.click();
+          document.body.removeChild(jsonA);
+          URL.revokeObjectURL(jsonUrl);
+
+          // Save PNG
+          canvas.toBlob(function (blob) {
+            const pngUrl = URL.createObjectURL(blob);
+            const pngA = document.createElement('a');
+            pngA.href = pngUrl;
+            pngA.download = `face_${name}.png`;
+            document.body.appendChild(pngA);
+            pngA.click();
+            document.body.removeChild(pngA);
+            URL.revokeObjectURL(pngUrl);
+          }, 'image/png');
+        }
+        function importJSONFromFile(file) {
+          const reader = new FileReader();
+          reader.onload = () => {
+            try {
+              const data = JSON.parse(String(reader.result));
+              const imported = [];
+              shapes.length = 0;
+              currentShapeId = null;
+              for (const group of Object.keys(data)) {
+                const val = data[group];
+                if (Array.isArray(val)) {
+                  const arr = val.map(p => Array.isArray(p)
+                    ? { x: Number(p[0]), y: Number(p[1]) }
+                    : { x: Number(p.x), y: Number(p.y) }
+                  );
+                  const closed = arr.length >= 3 && equalsPt(arr[0], arr[arr.length - 1]);
+                  imported.push({
+                    id: nextId++,
+                    group, closed,
+                    points: arr.map(p => clamp01pt(p))
+                  });
+                  continue;
+                }
+                if (val && typeof val === 'object') {
+                  const variants = val;
+                  for (const k of Object.keys(variants)) {
+                    const arr = variants[k];
+                    if (!Array.isArray(arr)) continue;
+                    const closed = arr.length >= 3 && equalsPt(arr[0], arr[arr.length - 1]);
+                    imported.push({
+                      id: nextId++,
+                      group, closed,
+                      points: arr.map(p => clamp01pt({ x: Number(p.x), y: Number(p.y) }))
+                    });
+                  }
+                }
+              }
+              shapes.push(...imported);
+              renderShapeList();
+              draw();
+            } catch (err) {
+              alert('Import failed: ' + err.message);
+            }
+          };
+          reader.readAsText(file);
+        }
+
+        // --- Shape List UI ---
+        function renderShapeList() {
+          shapesList.innerHTML = '';
+          for (const s of shapes) {
+            const item = document.createElement('div');
+            item.className = 'shapeItem';
+            item.innerHTML = `
+              <div class="meta">
+                <input type="text" class="shapeNameInput" data-id="${s.id}" value="${s.group && s.group.trim() ? escapeHtml(s.group.trim()) : ''}" style="width: 100px; font-size: 12px;" />
+                <span class="unnamed" style="${s.group && s.group.trim() ? 'display:none;' : ''}">unnamed</span>
+              </div>
+              <div>
+                <button data-act="delete" data-id="${s.id}">Delete</button>
+              </div>
+            `;
+            const inputEl = item.querySelector('.shapeNameInput');
+            const unnamedEl = item.querySelector('.unnamed');
+            if (inputEl && unnamedEl) {
+              function updateUnnamed() {
+                unnamedEl.style.display = (inputEl.value.trim() === '' && document.activeElement !== inputEl) ? '' : 'none';
+              }
+              inputEl.addEventListener('input', updateUnnamed);
+              inputEl.addEventListener('focus', updateUnnamed);
+              inputEl.addEventListener('blur', updateUnnamed);
+              updateUnnamed();
+            }
+            shapesList.appendChild(item);
+          }
+          if (!document.getElementById('addNewShape')) {
+            const emojiBtn = document.createElement('button');
+            emojiBtn.id = 'addNewShape';
+            emojiBtn.textContent = '➕';
+            emojiBtn.style.fontSize = '2.5rem';
+            emojiBtn.style.width = '100%';
+            emojiBtn.style.margin = '12px 0 0 0';
+            emojiBtn.style.background = '#fff';
+            emojiBtn.style.border = 'none';
+            emojiBtn.style.cursor = 'pointer';
+            emojiBtn.style.display = 'block';
+            emojiBtn.tabIndex = -1;
+            emojiBtn.style.outline = 'none';
+            shapesList.after(emojiBtn);
+            emojiBtn.addEventListener('mousedown', (e) => { e.preventDefault(); });
+            emojiBtn.addEventListener('click', () => { finishShape(); });
+          }
+          shapesList.querySelectorAll('.shapeNameInput').forEach(input => {
+            function updateShapeNameOnly() {
+              const id = parseInt(input.getAttribute('data-id'), 10);
+              const s = shapes.find(s => s.id === id);
+              if (s) {
+                let newName = input.value.trim();
+                newName = newName ? newName.replace(/\s+/g, '_').toLowerCase() : '';
+                s.group = newName;
+              }
+            }
+            function updateShapeNameAndRender() {
+              updateShapeNameOnly();
+              renderShapeList();
+              draw();
+            }
+            input.addEventListener('input', updateShapeNameOnly);
+            input.addEventListener('change', updateShapeNameAndRender);
+            input.addEventListener('blur', updateShapeNameAndRender);
+            input.addEventListener('keydown', (e) => {
+              if (e.key === 'Enter') input.blur();
+            });
+          });
+          shapesList.querySelectorAll('button').forEach(btn => {
+            btn.addEventListener('click', () => {
+              const id = parseInt(btn.getAttribute('data-id'), 10);
+              const act = btn.getAttribute('data-act');
+              const s = shapes.find(s => s.id === id);
+              if (!s) return;
+              if (act === 'delete') {
+                const idx = shapes.indexOf(s);
+                if (idx >= 0) shapes.splice(idx, 1);
+                if (currentShapeId === id) currentShapeId = null;
+                renderShapeList(); draw();
+              }
+            });
+          });
+        }
+
+        // --- Controls ---
+        btnExport.addEventListener('click', exportJSON);
+        btnImport.addEventListener('click', () => inputImport.click());
+        inputImport.addEventListener('change', (e) => {
+          const file = e.target.files && e.target.files[0];
+          if (file) importJSONFromFile(file);
+          inputImport.value = '';
+        });
+
+        // --- Init ---
+        // Load default template shapes on first open
+        function loadDefaultTemplate() {
+          for (const group of Object.keys(defaultTemplate)) {
+            const pts = defaultTemplate[group];
+            if (Array.isArray(pts)) {
+              const arr = pts.map(p => Array.isArray(p)
+                ? { x: Number(p[0]), y: Number(p[1]) }
+                : { x: Number(p.x), y: Number(p.y) }
+              );
+              const closed = arr.length >= 3 && (arr[0].x === arr[arr.length - 1].x && arr[0].y === arr[arr.length - 1].y);
+              shapes.push({
+                id: nextId++,
+                group,
+                closed,
+                points: arr
+              });
+            }
+          }
+          renderShapeList();
+          draw();
+        }
+
+        loadDefaultTemplate();
+      })();
+    </script>
+</body>
+
+</html>
