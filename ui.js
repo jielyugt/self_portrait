@@ -16,40 +16,80 @@
     selEl.selectedIndex = (Math.random() * selEl.options.length) | 0;
   }
 
-  function initUI(onChange, onExport, onImport) {
-    const eyesSel = byId('eyesSel');
-    const mouthSel = byId('mouthSel');
-    const headSel = byId('headSel');
+  function initUI(onChange, onExport, onImport, numSets) {
+    // Use sliders for each component
+    const eyesSlider = byId('eyesSlider');
+    const mouthSlider = byId('mouthSlider');
+    const headSlider = byId('headSlider');
 
-    fillSelect(eyesSel, Object.keys(LIB.eyes));
-    fillSelect(mouthSel, Object.keys(LIB.mouth));
-    fillSelect(headSel, Object.keys(LIB.head));
+    // Set slider attributes (1-based for UI)
+    [eyesSlider, mouthSlider, headSlider].forEach(sl => {
+      sl.min = 1;
+      sl.max = numSets;
+      sl.value = 1;
+      sl.step = 1;
+    });
 
-    eyesSel.value = 'eyes_open';
-    mouthSel.value = 'mouth_neutral';
-    headSel.value = 'head_front';
+    const eyesSliderValue = byId('eyesSliderValue');
+    const mouthSliderValue = byId('mouthSliderValue');
+    const headSliderValue = byId('headSliderValue');
 
-    eyesSel.onchange  = () => onChange('eyes',  eyesSel.value);
-    mouthSel.onchange = () => onChange('mouth', mouthSel.value);
-    headSel.onchange  = () => onChange('head',  headSel.value);
+    function updateSliderValue(kind, value) {
+      const num = Number(value);
+      if (kind === 'eyes') eyesSliderValue.textContent = num;
+      if (kind === 'mouth') mouthSliderValue.textContent = num;
+      if (kind === 'head') headSliderValue.textContent = num;
+    }
+
+    eyesSlider.oninput = () => {
+      updateSliderValue('eyes', eyesSlider.value);
+      console.log('Eyes slider changed:', eyesSlider.value);
+      onChange('eyes', parseInt(eyesSlider.value) - 1); // Convert 1-based to 0-based
+      if (window.redraw) window.redraw();
+    };
+    mouthSlider.oninput = () => {
+      updateSliderValue('mouth', mouthSlider.value);
+      console.log('Mouth slider changed:', mouthSlider.value);
+      onChange('mouth', parseInt(mouthSlider.value) - 1); // Convert 1-based to 0-based
+      if (window.redraw) window.redraw();
+    };
+    headSlider.oninput = () => {
+      updateSliderValue('head', headSlider.value);
+      console.log('Head slider changed:', headSlider.value);
+      onChange('head', parseInt(headSlider.value) - 1); // Convert 1-based to 0-based
+      if (window.redraw) window.redraw();
+    };
+
+    // Initialize values
+    updateSliderValue('eyes', eyesSlider.value);
+    updateSliderValue('mouth', mouthSlider.value);
+    updateSliderValue('head', headSlider.value);
 
     byId('randomBtn').onclick = () => {
-      randomizeSelect(eyesSel);  onChange('eyes',  eyesSel.value);
-      randomizeSelect(mouthSel); onChange('mouth', mouthSel.value);
-      randomizeSelect(headSel);  onChange('head',  headSel.value);
+      eyesSlider.value = ((Math.random() * numSets) | 0) + 1; // Generate 1-based value
+      mouthSlider.value = ((Math.random() * numSets) | 0) + 1; // Generate 1-based value
+      headSlider.value = ((Math.random() * numSets) | 0) + 1; // Generate 1-based value
+      updateSliderValue('eyes', eyesSlider.value);
+      updateSliderValue('mouth', mouthSlider.value);
+      updateSliderValue('head', headSlider.value);
+      onChange('eyes', parseInt(eyesSlider.value) - 1); // Convert 1-based to 0-based
+      onChange('mouth', parseInt(mouthSlider.value) - 1); // Convert 1-based to 0-based
+      onChange('head', parseInt(headSlider.value) - 1); // Convert 1-based to 0-based
     };
 
-    byId('exportBtn').onclick = onExport;
-    byId('importBtn').onclick = () => byId('importFile').click();
-    byId('importFile').onchange = e => {
-      const f = e.target.files[0];
-      f && onImport(f);
-    };
+    if (onExport) byId('exportBtn').onclick = onExport;
+    if (onImport) {
+      byId('importBtn').onclick = () => byId('importFile').click();
+      byId('importFile').onchange = e => {
+        const f = e.target.files[0];
+        f && onImport(f);
+      };
+    }
 
     return {
-      eyes: eyesSel.value,
-      mouth: mouthSel.value,
-      head: headSel.value
+      eyes: 0, // Internal values remain 0-based
+      mouth: 0,
+      head: 0
     };
   }
 

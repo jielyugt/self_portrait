@@ -1,53 +1,105 @@
 <!doctype html>
 <html>
+
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
   <title>Morphing Face (p5 modular)</title>
   <style>
-    html, body { margin:0; height:100%; overflow:hidden; background:#f7f4ee; font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; }
-    #ui {
-      position: fixed; left: 12px; top: 12px; padding: 10px 12px; background: rgba(255,255,255,.92);
-      border: 1px solid #ddd; border-radius: 10px; backdrop-filter: blur(6px);
-      display: grid; gap: 6px; z-index: 2; max-width: min(92vw, 360px);
+    html,
+    body {
+      margin: 0;
+      height: 100%;
+      overflow: hidden;
+      background: #ffffff;
+      color: #000000;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
     }
-    #ui label { font-size: 12px; color:#333; }
-    #ui select, #ui button { font-size: 14px; padding: 6px 8px; }
-    #hint { position: fixed; right: 12px; bottom: 12px; color:#666; font-size:12px; }
-    canvas { display:block; }
+
+    #ui {
+      position: fixed;
+      left: 12px;
+      top: 12px;
+      padding: 10px 12px;
+      background: #fff;
+      border: 1px solid #000;
+      display: grid;
+      gap: 6px;
+      z-index: 2;
+      max-width: min(92vw, 360px);
+    }
+
+    #ui label {
+      font-size: 12px;
+      color: #000;
+    }
+
+    #ui button {
+      border: 1px solid #000;
+      background: #fff;
+      color: #000;
+      padding: 6px 8px;
+      cursor: pointer;
+      border-radius: 0;
+      font-size: 12px;
+    }
+
+    #ui button:active {
+      transform: translateY(1px);
+    }
+
+    #ui input[type="range"] {
+      accent-color: #000;
+    }
+
+    #hint {
+      position: fixed;
+      right: 12px;
+      bottom: 12px;
+      color: #000;
+      font-size: 12px;
+    }
+
+    canvas {
+      display: block;
+      background: #fff;
+    }
   </style>
 </head>
+
 <body>
 
-<div id="ui">
-  <strong>Build Your Portrait</strong>
-  <label>Eyes</label>
-  <select id="eyesSel"></select>
+  <div id="ui">
+    <strong>Portrait Generator</strong>
+    <div style="font-size: 11px; margin-bottom: 8px;">Click inside the hexagon to blend faces</div>
 
-  <label>Mouth</label>
-  <select id="mouthSel"></select>
+    <canvas id="hexCanvas" width="200" height="200" style="border: 1px solid #000; cursor: crosshair;"></canvas>
 
-  <label>Head Direction</label>
-  <select id="headSel"></select>
+    <div id="blendInfo"
+      style="font-size: 10px; margin-top: 6px; color: #666; display: grid; grid-template-columns: 1fr 1fr; gap: 4px;">
+      <div>Face 1: <span id="blend1">100%</span></div>
+      <div>Face 2: <span id="blend2">0%</span></div>
+      <div>Face 3: <span id="blend3">0%</span></div>
+      <div>Face 4: <span id="blend4">0%</span></div>
+      <div>Face 5: <span id="blend5">0%</span></div>
+      <div>Face 6: <span id="blend6">0%</span></div>
+    </div>
 
-  <div style="display:flex; gap:6px; margin-top:6px;">
     <button id="randomBtn">Randomize</button>
-    <button id="exportBtn" title="Save current shapes as JSON">Export JSON</button>
-    <input id="importFile" type="file" accept="application/json" style="display:none;">
-    <button id="importBtn" title="Load shapes JSON">Import</button>
   </div>
-</div>
 
-<div id="hint">Tip: press <b>S</b> to save PNG</div>
+  <div id="hint">Tip: press <b>S</b> to save PNG</div>
 
-<!-- p5 -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.7.0/p5.min.js"></script>
+  <!-- p5 -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.7.0/p5.min.js"></script>
 
-<!-- modules (order matters) -->
-<script src="./morph.js"></script>
-<script src="./shapes.js"></script>
-<script src="./renderer.js"></script>
-<script src="./ui.js"></script>
-<script src="./sketch.js"></script>
+  <!-- modules (order matters) -->
+  <script src="./morph.js"></script>
+  <script src="./shapes.js"></script>
+  <script src="./renderer.js"></script>
+  <script src="./hexagon-ui.js"></script>
+  <script src="./ui.js"></script>
+  <script src="./sketch.js"></script>
 </body>
+
 </html>

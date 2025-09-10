@@ -22,12 +22,16 @@
     // head (1:1)
     drawPolyline(pg, parts.head, cx, cy, size, size, { weight: 4 });
 
-    // eyes: scaled smaller + slightly higher
-    const E = parts.eyes.map(p => ({ x: p.x * 0.6 + 0.2, y: p.y * 0.55 + 0.12 }));
-    drawPolyline(pg, E, cx, cy, size, size, { weight: 4 });
+    // left eye: scaled and positioned (50% bigger: 0.6 * 1.5 = 0.9)
+    const leftE = parts.left_eye.map(p => ({ x: p.x * 0.9 + 0.05, y: p.y * 0.825 + 0.0375 }));
+    drawPolyline(pg, leftE, cx, cy, size, size, { weight: 4 });
 
-    // mouth: scaled + lower
-    const M = parts.mouth.map(p => ({ x: p.x * 0.7 + 0.15, y: p.y * 0.35 + 0.45 }));
+    // right eye: scaled and positioned (50% bigger: 0.6 * 1.5 = 0.9)
+    const rightE = parts.right_eye.map(p => ({ x: p.x * 0.9 + 0.05, y: p.y * 0.825 + 0.0375 }));
+    drawPolyline(pg, rightE, cx, cy, size, size, { weight: 4 });
+
+    // mouth: scaled + lower (50% bigger: 0.7 * 1.5 = 1.05)
+    const M = parts.mouth.map(p => ({ x: p.x * 1.05 - 0.025, y: p.y * 0.525 + 0.3375 }));
     drawPolyline(pg, M, cx, cy, size, size, { weight: 4 });
   }
 
