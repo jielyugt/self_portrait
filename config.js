@@ -9,7 +9,7 @@
     // === FACE DATA ===
     FACES: {
       // Change this to switch face folder easily
-      PATH: 'faces',
+      PATH: 'faces_v2',
       COUNT: 6,
       // File paths for face JSON data
       get FILES() {
