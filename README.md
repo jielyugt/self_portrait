@@ -3,7 +3,7 @@ A line-art portrait generator that morph the graphical elements in realtime from
 
 ## Links
 - Portrait generator (WIP): https://jielyugt.github.io/self_portrait/
-- Draw & export shape JSON (for development): https://jielyugt.github.io/self_portrait/faces/shape_sketcher.html
+- Draw & export shape JSON (for development): https://jielyugt.github.io/self_portrait/shape_sketcher.html
 
 ## Behind The Scene
 - Through Q & A, a person’s traits are collected and stored in a vector of N elements
