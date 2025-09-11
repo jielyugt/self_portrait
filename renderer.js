@@ -1,39 +1,98 @@
-// renderer.js
+/**
+ * Renderer module for drawing face components
+ * Handles rendering of polylines and complete face composition
+ */
 (function (root) {
   const FaceApp = (root.FaceApp = root.FaceApp || {});
+  const { CONFIG } = FaceApp;
 
+  /**
+   * Draws a polyline (series of connected points) on the graphics buffer
+   * @param {p5.Graphics} pg - p5.js graphics buffer to draw on
+   * @param {Array} pts - Array of {x, y} points to draw
+   * @param {number} cx - Center X coordinate for positioning
+   * @param {number} cy - Center Y coordinate for positioning  
+   * @param {number} w - Width scaling factor
+   * @param {number} h - Height scaling factor
+   * @param {Object} opts - Drawing options
+   */
   function drawPolyline(pg, pts, cx, cy, w, h, opts = {}) {
-    const { close = false, weight = 4, stroke = 20 } = opts;
+    const {
+      close = false,
+      weight = CONFIG.VISUAL.LINE_WEIGHTS.HEAD,
+      stroke = CONFIG.VISUAL.STROKE_COLOR
+    } = opts;
+
     pg.push();
     pg.translate(cx, cy);
     pg.noFill();
     pg.stroke(stroke);
     pg.strokeWeight(weight);
     pg.beginShape();
+
+    // Draw each point, converting from [0,1] coordinate space to canvas space
     for (const p of pts) {
       pg.vertex((p.x - 0.5) * w, (p.y - 0.5) * h);
     }
-    if (close) pg.endShape(pg.CLOSE); else pg.endShape();
+
+    if (close) {
+      pg.endShape(pg.CLOSE);
+    } else {
+      pg.endShape();
+    }
     pg.pop();
   }
 
-  // Compose components
+  /**
+   * Renders a complete face by drawing all components with proper scaling and positioning
+   * @param {p5.Graphics} pg - p5.js graphics buffer to draw on
+   * @param {Object} parts - Face parts containing head, left_eye, right_eye, mouth
+   * @param {number} cx - Center X coordinate
+   * @param {number} cy - Center Y coordinate
+   * @param {number} size - Overall face size
+   */
   function composeFace(pg, parts, cx, cy, size) {
-    // head (1:1)
-    drawPolyline(pg, parts.head, cx, cy, size, size, { weight: 4 });
+    // Draw head outline (1:1 scale)
+    drawPolyline(pg, parts.head, cx, cy, size, size, {
+      weight: CONFIG.VISUAL.LINE_WEIGHTS.HEAD
+    });
 
-    // left eye: scaled and positioned (50% bigger: 0.6 * 1.5 = 0.9)
-    const leftE = parts.left_eye.map(p => ({ x: p.x * 0.9 + 0.05, y: p.y * 0.825 + 0.0375 }));
-    drawPolyline(pg, leftE, cx, cy, size, size, { weight: 4 });
+    // Draw left eye with configured scaling and positioning
+    const leftEyeScaled = scaleAndPositionPoints(parts.left_eye, CONFIG.VISUAL.SCALING.LEFT_EYE);
+    drawPolyline(pg, leftEyeScaled, cx, cy, size, size, {
+      weight: CONFIG.VISUAL.LINE_WEIGHTS.EYES
+    });
 
-    // right eye: scaled and positioned (50% bigger: 0.6 * 1.5 = 0.9)
-    const rightE = parts.right_eye.map(p => ({ x: p.x * 0.9 + 0.05, y: p.y * 0.825 + 0.0375 }));
-    drawPolyline(pg, rightE, cx, cy, size, size, { weight: 4 });
+    // Draw right eye with configured scaling and positioning
+    const rightEyeScaled = scaleAndPositionPoints(parts.right_eye, CONFIG.VISUAL.SCALING.RIGHT_EYE);
+    drawPolyline(pg, rightEyeScaled, cx, cy, size, size, {
+      weight: CONFIG.VISUAL.LINE_WEIGHTS.EYES
+    });
 
-    // mouth: scaled + lower (50% bigger: 0.7 * 1.5 = 1.05)
-    const M = parts.mouth.map(p => ({ x: p.x * 1.05 - 0.025, y: p.y * 0.525 + 0.3375 }));
-    drawPolyline(pg, M, cx, cy, size, size, { weight: 4 });
+    // Draw mouth with configured scaling and positioning
+    const mouthScaled = scaleAndPositionPoints(parts.mouth, CONFIG.VISUAL.SCALING.MOUTH);
+    drawPolyline(pg, mouthScaled, cx, cy, size, size, {
+      weight: CONFIG.VISUAL.LINE_WEIGHTS.MOUTH
+    });
   }
 
-  FaceApp.Renderer = { drawPolyline, composeFace };
+  /**
+   * Scales and positions points according to provided scaling configuration
+   * @param {Array} points - Array of {x, y} points to transform
+   * @param {Object} scaling - Scaling configuration with SCALE_X, SCALE_Y, OFFSET_X, OFFSET_Y
+   * @returns {Array} Transformed points
+   */
+  function scaleAndPositionPoints(points, scaling) {
+    return points.map(p => ({
+      x: p.x * scaling.SCALE_X + scaling.OFFSET_X,
+      y: p.y * scaling.SCALE_Y + scaling.OFFSET_Y
+    }));
+  }
+
+  // Export public interface
+  FaceApp.Renderer = {
+    drawPolyline,
+    composeFace,
+    scaleAndPositionPoints
+  };
 })(window);

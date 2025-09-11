@@ -90,16 +90,17 @@
 
   <div id="hint">Tip: press <b>S</b> to save PNG</div>
 
-  <!-- p5 -->
+  <!-- p5.js Library -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.7.0/p5.min.js"></script>
 
-  <!-- modules (order matters) -->
-  <script src="./morph.js"></script>
-  <script src="./shapes.js"></script>
-  <script src="./renderer.js"></script>
-  <script src="./hexagon-ui.js"></script>
-  <script src="./ui.js"></script>
-  <script src="./sketch.js"></script>
+  <!-- Application modules (load order is important) -->
+  <script src="./config.js"></script> <!-- Configuration must load first -->
+  <script src="./morph.js"></script> <!-- Morphing utilities -->
+  <script src="./shapes.js"></script> <!-- Shape library (for dev tools) -->
+  <script src="./renderer.js"></script> <!-- Face rendering -->
+  <script src="./hexagon-ui.js"></script> <!-- Hexagon blend interface -->
+  <script src="./ui.js"></script> <!-- Traditional UI (unused) -->
+  <script src="./sketch.js"></script> <!-- Main application logic -->
 </body>
 
 </html>
