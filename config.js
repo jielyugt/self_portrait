@@ -8,17 +8,13 @@
   const CONFIG = {
     // === FACE DATA ===
     FACES: {
-      // Total number of face variations available
+      // Change this to switch face folder easily
+      PATH: 'faces',
       COUNT: 6,
       // File paths for face JSON data
-      FILES: [
-        'faces/face_1.json',
-        'faces/face_2.json',
-        'faces/face_3.json',
-        'faces/face_4.json',
-        'faces/face_5.json',
-        'faces/face_6.json'
-      ]
+      get FILES() {
+        return Array.from({ length: this.COUNT }, (_, i) => `${this.PATH}/face_${i + 1}.json`);
+      }
     },
 
     // === CANVAS & RENDERING ===
