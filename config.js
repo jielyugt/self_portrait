@@ -148,6 +148,48 @@
 
       // Minimum weight threshold for calculations
       MIN_WEIGHT_THRESHOLD: 0.001
+    },
+
+    // === MBTI SYSTEM ===
+    MBTI: {
+      // Default MBTI values (all at neutral 0)
+      DEFAULT_VALUES: [0, 0, 0, 0], // [e_i, s_n, t_f, j_p]
+
+      // MBTI dimension labels
+      DIMENSIONS: [
+        { name: 'E/I', left: 'Extraversion', right: 'Introversion' },
+        { name: 'S/N', left: 'Sensing', right: 'Intuition' },
+        { name: 'T/F', left: 'Thinking', right: 'Feeling' },
+        { name: 'J/P', left: 'Judging', right: 'Perceiving' }
+      ],
+
+      FEATURE_WEIGHTS: {
+        eye: {
+          e_i: -0.3,
+          s_n: -0.2,
+          j_p: 0.5
+        },
+
+        mouth: {
+          e_i: -0.5,
+          t_f: -0.5
+        },
+
+        head: {
+          s_n: 0.6,
+          t_f: 0.4
+        },
+
+        proportion: {
+          e_i: 0.7,
+          j_p: 0.3
+        },
+
+        movement: {
+          s_n: -0.4,
+          j_p: 0.6
+        }
+      }
     }
   };
 

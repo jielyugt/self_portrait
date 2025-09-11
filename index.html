@@ -71,18 +71,16 @@
 
   <div id="ui">
     <strong>Portrait Generator</strong>
-    <div style="font-size: 11px; margin-bottom: 8px;">Click inside the hexagon to blend faces</div>
+    <div style="font-size: 11px; margin-bottom: 12px;">Adjust the MBTI sliders to morph your portrait</div>
 
-    <canvas id="hexCanvas" width="200" height="200" style="border: 1px solid #000; cursor: crosshair;"></canvas>
+    <div id="mbtiSliders"></div>
 
-    <div id="blendInfo"
-      style="font-size: 10px; margin-top: 6px; color: #666; display: grid; grid-template-columns: 1fr 1fr; gap: 4px;">
-      <div>Face 1: <span id="blend1">100%</span></div>
-      <div>Face 2: <span id="blend2">0%</span></div>
-      <div>Face 3: <span id="blend3">0%</span></div>
-      <div>Face 4: <span id="blend4">0%</span></div>
-      <div>Face 5: <span id="blend5">0%</span></div>
-      <div>Face 6: <span id="blend6">0%</span></div>
+    <div id="parameterInfo" style="font-size: 10px; margin-top: 8px; color: #666;">
+      <div>Eye: <span id="param-eye">0.0</span></div>
+      <div>Mouth: <span id="param-mouth">0.0</span></div>
+      <div>Head: <span id="param-head">0.0</span></div>
+      <div>Proportion: <span id="param-proportion">0.0</span></div>
+      <div>Movement: <span id="param-movement">0.0</span></div>
     </div>
 
     <button id="randomBtn">Randomize</button>
@@ -98,7 +96,7 @@
   <script src="./morph.js"></script> <!-- Morphing utilities -->
   <script src="./shapes.js"></script> <!-- Shape library (for dev tools) -->
   <script src="./renderer.js"></script> <!-- Face rendering -->
-  <script src="./hexagon-ui.js"></script> <!-- Hexagon blend interface -->
+  <script src="./mbti-ui.js"></script> <!-- MBTI slider interface -->
   <script src="./ui.js"></script> <!-- Traditional UI (unused) -->
   <script src="./sketch.js"></script> <!-- Main application logic -->
 </body>
