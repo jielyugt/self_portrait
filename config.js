@@ -20,7 +20,7 @@
     // === CANVAS & RENDERING ===
     CANVAS: {
       // Portrait size as percentage of minimum viewport dimension
-      SIZE_RATIO: 0.72,
+      SIZE_RATIO: 0.9,
       // Background color
       BACKGROUND_COLOR: '#ffffff'
     },
@@ -76,7 +76,7 @@
 
       // Morphing animation settings
       MORPH: {
-        DURATION_SEC: 0.6,    // How long morphing takes
+        DURATION_SEC: 5,    // How long morphing takes
         SAMPLE_POINTS: 64     // Number of points to resample polylines to
       }
     },
@@ -185,6 +185,107 @@
           s_n: -0.4,
           j_p: 0.6
         }
+      }
+    },
+
+    // === CHAT INTERFACE ===
+    CHAT: {
+      // File paths
+      FILES: {
+        INTRO_YAML: 'chat/intro.yaml',
+        MBTI_QUESTIONS: 'chat/mbti_questions.json',
+        IPHONE_IMAGE: 'chat/iphone.png'
+      },
+
+      // iPhone mockup positioning and sizing
+      IPHONE: {
+        WIDTH: 280,                    // iPhone mockup width in pixels
+        HEIGHT: 560,                   // iPhone mockup height in pixels
+        SCREEN_INSET: {                // Screen area within phone frame
+          TOP: 60,                     // Top bezel height
+          BOTTOM: 60,                  // Bottom bezel height
+          LEFT: 20,                    // Left bezel width
+          RIGHT: 20                    // Right bezel width
+        },
+        POSITION: {
+          RIGHT_MARGIN: 50,            // Distance from right edge of viewport
+          VERTICAL_CENTER_OFFSET: 0    // Offset from vertical center
+        }
+      },
+
+      // Portrait positioning
+      PORTRAIT: {
+        POSITION: {
+          LEFT_MARGIN: 50,                    // Distance from left edge of viewport
+          VERTICAL_CENTER_OFFSET: -20,        // Fixed pixel offset from vertical center (negative moves up)
+          VERTICAL_CENTER_OFFSET_RATIO: -0.072 // Proportional offset as ratio of viewport height (negative moves up)
+        }
+      },
+
+      // Chat bubble styling
+      BUBBLES: {
+        // Pablo's message bubbles (left side)
+        PABLO: {
+          BACKGROUND: '#000000ff',       // Blue background
+          TEXT_COLOR: '#FFFFFF',       // White text
+          BORDER_RADIUS: 10,           // Rounded corners
+          PADDING: { X: 16, Y: 12 },   // Internal padding
+          MAX_WIDTH: 9999,              // Full width
+          MARGIN: { X: 20, Y: 8 },     // Margin between bubbles
+          ALIGN: 'left'                // Alignment within chat area
+        },
+
+        // User choice bubbles (right side)
+        USER: {
+          BACKGROUND: '#E9E9EB',       // Light gray background
+          TEXT_COLOR: '#000000',       // Black text
+          BORDER_RADIUS: 10,           // Rounded corners
+          PADDING: { X: 16, Y: 12 },   // Internal padding
+          MAX_WIDTH: 9999,              // Full width
+          MARGIN: { X: 20, Y: 8 },     // Margin between bubbles
+          ALIGN: 'right',              // Alignment within chat area
+          HOVER_BACKGROUND: '#D1D1D6'  // Background on hover
+        },
+
+        // Typing indicator bubble
+        TYPING: {
+          DOT_COLOR: '#FFFFFF',        // White dots
+          DOT_SIZE: 4,                 // Dot diameter
+          DOT_SPACING: 3,              // Space between dots
+          ANIMATION_DURATION: 600,     // Dot animation cycle time in ms
+          MARGIN: {                    // Margin around typing indicator
+            TOP: 30,                  // Extra top margin to push down
+            BOTTOM: 8,                // Bottom margin
+            LEFT: 40,                 // Left margin
+            RIGHT: 20                 // Right margin
+          }
+        }
+      },
+
+      // Text styling
+      TEXT: {
+        FONT_FAMILY: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
+        FONT_SIZE: 14,               // Base font size
+        LINE_HEIGHT: 1.4,            // Line height multiplier
+        SPEAKER_FONT_SIZE: 12,       // Font size for speaker name
+        SPEAKER_COLOR: '#8E8E93'     // Color for speaker name
+      },
+
+      // Animation and timing
+      ANIMATION: {
+        TYPING_PAUSE_PER_CHAR: 0.04, // Seconds of typing animation per character
+        MIN_TYPING_TIME: 0.5,        // Minimum typing animation time in seconds
+        MAX_TYPING_TIME: 2.0,        // Maximum typing animation time in seconds
+        BUBBLE_APPEAR_DURATION: 0.3, // Bubble fade-in animation duration
+        CHOICE_HOVER_DURATION: 0.2,  // Choice button hover animation duration
+        CHOICE_INITIAL_DELAY: 0.3,    // Delay before first choice button appears (seconds)
+        CHOICE_STAGGER_DELAY: 0.3,   // Delay between each choice button appearing (seconds)
+      },
+
+      // Chat area dimensions (within iPhone screen)
+      CHAT_AREA: {
+        PADDING: { TOP: 30, BOTTOM: 100, LEFT: 0, RIGHT: 0 }, // Padding within screen
+        SCROLL_SPEED: 0.1            // Auto-scroll speed when new messages appear
       }
     }
   };

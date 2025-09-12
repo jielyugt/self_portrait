@@ -1,0 +1,233 @@
+[
+  {
+    "id": 1,
+    "question": "Breakfast energy 🍕🍵",
+    "answers": [
+      "Cold pizza",
+      "Quiet cup of tea",
+      "Depends who I’m with"
+    ],
+    "scores": [
+      {
+        "e_i": -0.5,
+        "j_p": 0.5,
+        "t_f": -0.2
+      },
+      {
+        "e_i": 0.2,
+        "j_p": -0.5,
+        "s_n": 0.2
+      },
+      {
+        "e_i": -0.2
+      }
+    ]
+  },
+  {
+    "id": 2,
+    "question": "Party survival kit 🎉🍷🐕",
+    "answers": [
+      "Dancing moves",
+      "One friend + escape plan",
+      "Snacks and vibes"
+    ],
+    "scores": [
+      {
+        "e_i": -0.8,
+        "s_n": -0.2
+      },
+      {
+        "e_i": 0.4,
+        "j_p": -0.3
+      },
+      {
+        "e_i": -0.1,
+        "t_f": 0.3
+      }
+    ]
+  },
+  {
+    "id": 3,
+    "question": "Grocery shopping 🛒🥑📋",
+    "answers": [
+      "List in hand, aisle by aisle",
+      "Wander & grab",
+      "List… plus 5 impulse buys"
+    ],
+    "scores": [
+      {
+        "j_p": -0.6,
+        "s_n": -0.5
+      },
+      {
+        "j_p": 0.7,
+        "s_n": 0.3
+      },
+      {
+        "j_p": 0.3
+      }
+    ]
+  },
+  {
+    "id": 4,
+    "question": "Dog park 🐶☕👀",
+    "answers": [
+      "Pet every dog",
+      "Watch from bench, deep in thought",
+      "Chat with people more than dogs"
+    ],
+    "scores": [
+      {
+        "e_i": -0.5,
+        "t_f": 0.4
+      },
+      {
+        "e_i": 0.2,
+        "s_n": 0.1
+      },
+      {
+        "e_i": -0.7,
+        "t_f": -0.3
+      }
+    ]
+  },
+  {
+    "id": 5,
+    "question": "Pick your artist 🎨",
+    "answers": [
+      "Claude Monet",
+      "Pablo Picasso",
+      "Salvador Dalí"
+    ],
+    "scores": [
+      {
+        "s_n": -0.2,
+        "t_f": 0.2
+      },
+      {
+        "s_n": 0.4,
+        "t_f": 0.5
+      },
+      {
+        "s_n": 0.2,
+        "t_f": -0.4
+      }
+    ]
+  },
+  {
+    "id": 6,
+    "question": "Rainy afternoon 🌧️📞📚",
+    "answers": [
+      "Call someone, order food",
+      "Solo cozy project",
+      "Start 1 thing, end up doing 5"
+    ],
+    "scores": [
+      {
+        "e_i": -0.6,
+        "j_p": 0.4
+      },
+      {
+        "e_i": 0.2,
+        "j_p": -0.3
+      },
+      {
+        "j_p": 0.7,
+        "s_n": 0.1
+      }
+    ]
+  },
+  {
+    "id": 7,
+    "question": "Texting style 📱😂📜",
+    "answers": [
+      "Memes + emojis",
+      "Thoughtful essays",
+      "“lol” then vanish"
+    ],
+    "scores": [
+      {
+        "e_i": -0.4,
+        "t_f": 0.3
+      },
+      {
+        "e_i": 0.5,
+        "t_f": 0.1,
+        "s_n": 0.2
+      },
+      {
+        "e_i": -0.1,
+        "j_p": 0.4,
+        "t_f": -0.2
+      }
+    ]
+  },
+  {
+    "id": 8,
+    "question": "Road trip 🚗🎶🗺️",
+    "answers": [
+      "Playlist + bathroom stops mapped",
+      "See where the road goes",
+      "Loose map, wing the rest"
+    ],
+    "scores": [
+      {
+        "j_p": -0.6,
+        "s_n": -0.3
+      },
+      {
+        "j_p": 0.7,
+        "s_n": 0.3
+      },
+      {
+        "j_p": 0.6
+      }
+    ]
+  },
+  {
+    "id": 9,
+    "question": "Art gallery 🖼️📸🤔",
+    "answers": [
+      "Snap pics of cool stuff",
+      "Read every plaque",
+      "Pretend & joke about it"
+    ],
+    "scores": [
+      {
+        "s_n": -0.4,
+        "e_i": -0.2
+      },
+      {
+        "s_n": 0.3,
+        "e_i": 0.3
+      },
+      {
+        "e_i": -0.4,
+        "t_f": -0.3
+      }
+    ]
+  },
+  {
+    "id": 10,
+    "question": "Coffee order ☕🎃🤷",
+    "answers": [
+      "Black, no fuss",
+      "Seasonal latte adventure",
+      "Whatever friend’s having"
+    ],
+    "scores": [
+      {
+        "t_f": -0.5,
+        "j_p": -0.2
+      },
+      {
+        "s_n": 0.3,
+        "j_p": 0.2
+      },
+      {
+        "t_f": 0.5,
+        "e_i": -0.2
+      }
+    ]
+  }
+]

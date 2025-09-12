@@ -17,7 +17,15 @@
   let faceSets = [];                                   // Array of loaded face data
   let currentMBTIValues = [...CONFIG.MBTI.DEFAULT_VALUES]; // Current MBTI values [e_i, s_n, t_f, j_p]
   let currentFaceParams = {};                          // Current face shape parameters
-  let mbtiUI;                                          // MBTI UI controller
+  let chatUI;                                          // Chat UI controller
+  let currentMode = 'chat';                            // Current interaction mode: 'chat', 'self'
+  let portraitSize = CONFIG.CANVAS.SIZE_RATIO;     // Portrait size when chat is active
+
+  // Morphing animation state
+  let morphTarget = null;                              // Target MBTI values for morphing
+  let morphStartTime = 0;                              // When current morph started
+  let morphDuration = CONFIG.ANIMATION.MORPH.DURATION_SEC * 1000; // Morph duration in milliseconds
+  let morphStartValues = null;                         // Starting MBTI values for morph
 
   /**
    * p5.js setup function - initializes canvas and loads face data
@@ -28,13 +36,24 @@
 
     // Load all face data from JSON files
     await loadFaceData();
-    console.log('Loaded faceSets:', faceSets);
+    console.log('Loaded', faceSets.length, 'face sets');
 
-    // Initialize the MBTI UI for personality-based morphing
-    initializeMBTIUI();
+    // Initialize MBTI system with default values
+    currentMBTIValues = [...CONFIG.MBTI.DEFAULT_VALUES];
+    currentFaceParams = calculateFaceParametersFromMBTI(currentMBTIValues);
+
+    // Initialize global references
+    FaceApp.currentMBTIValues = currentMBTIValues;
+    FaceApp.currentFaceParams = currentFaceParams;
 
     // Setup UI event handlers
     setupUIHandlers();
+
+    // Initialize the Chat UI for Q&A workflow (after a brief delay to ensure DOM is ready)
+    setTimeout(() => {
+      initializeChatUI();
+      updateModeIndicator('Chat - Talk to Pablo');
+    }, 100);
   };
 
   /**
@@ -80,34 +99,191 @@
   }
 
   /**
-   * Initializes the MBTI UI component
+   * Calculates face shape parameters from MBTI values using the config weights
+   * @param {Array} mbtiValues - Array of 4 values between -1 and 1
+   * @returns {Object} Object with calculated feature parameters
    */
-  function initializeMBTIUI() {
-    const container = document.getElementById('mbtiSliders');
-    console.log('MBTI container found:', !!container);
+  function calculateFaceParametersFromMBTI(mbtiValues) {
+    const params = {};
+
+    // Calculate each feature parameter using weighted sum
+    Object.keys(CONFIG.MBTI.FEATURE_WEIGHTS).forEach(feature => {
+      const weights = CONFIG.MBTI.FEATURE_WEIGHTS[feature];
+      let value = 0;
+
+      // Only add weights that exist for this feature
+      if (weights.e_i !== undefined) value += weights.e_i * mbtiValues[0];  // E/I dimension
+      if (weights.s_n !== undefined) value += weights.s_n * mbtiValues[1];  // S/N dimension  
+      if (weights.t_f !== undefined) value += weights.t_f * mbtiValues[2];  // T/F dimension
+      if (weights.j_p !== undefined) value += weights.j_p * mbtiValues[3];  // J/P dimension
+
+      params[feature] = value;
+    });
+
+    return params;
+  }  /**
+   * Initializes the Chat UI component
+   */
+  function initializeChatUI() {
+    const container = document.getElementById('chatContainer');
+    console.log('Chat container found:', !!container);
 
     if (!container) {
-      console.error('MBTI slider container not found!');
+      console.error('Chat container not found!');
       return;
     }
 
-    mbtiUI = new FaceApp.MBTIUI('mbtiSliders', handleMBTIChange);
-
-    // Initialize with default parameters
-    currentFaceParams = mbtiUI.calculateFaceParameters();
-    console.log('Initial face params:', currentFaceParams);
-
-    updateParameterDisplay();
+    chatUI = new FaceApp.ChatUI('chatContainer', handleWorkflowChange, handleChatMBTIUpdate);
+    console.log('Chat UI initialized');
   }
+
+  /**
+   * Handles workflow changes from chat interface
+   * @param {string} workflow - 'qa' for Q&A mode, 'self' for self-adjustment mode
+   */
+  function handleWorkflowChange(workflow) {
+    console.log('Workflow changed to:', workflow);
+
+    if (workflow === 'qa') {
+      // Switch to Q&A mode
+      currentMode = 'qa';
+      updateUIDescription('Answer Pablo\'s questions to build your portrait');
+      updateModeIndicator('Q&A - Answer Pablo\'s questions');
+      portraitSize = CONFIG.CANVAS.SIZE_RATIO;
+    } else if (workflow === 'self') {
+      // Switch to self-adjustment mode
+      currentMode = 'self';
+      updateUIDescription('Use the sliders on the phone to adjust your portrait');
+      updateModeIndicator('Self-adjustment - Use phone sliders');
+      portraitSize = CONFIG.CANVAS.SIZE_RATIO;
+    }
+  }
+
+  /**
+   * Handles MBTI updates from chat Q&A
+   * @param {Array} mbtiScores - Raw accumulated scores from chat
+   */
+  function handleChatMBTIUpdate(mbtiScores) {
+    console.log('Chat MBTI update:', mbtiScores);
+
+    // Normalize scores to [-1, 1] range with proper scaling
+    // Based on MBTI questions, scores typically range from about -3 to +3 when accumulated
+    const normalizedScores = mbtiScores.map(score => {
+      // Scale more aggressively: multiply by 1.0 to get full range, then clamp
+      const scaled = score * 1.0;
+      return Math.max(-1, Math.min(1, scaled));
+    });
+
+    // Start morphing animation in QA mode
+    if (currentMode === 'qa') {
+      startMorphingTo(normalizedScores);
+    } else {
+      // Update immediately in other modes
+      currentMBTIValues = normalizedScores;
+      currentFaceParams = calculateFaceParametersFromMBTI(currentMBTIValues);
+      updateParameterDisplay();
+
+      // Update global references
+      FaceApp.currentMBTIValues = currentMBTIValues;
+      FaceApp.currentFaceParams = currentFaceParams;
+    }
+  }
+
+  /**
+   * Updates the UI description text
+   * @param {string} text - New description text
+   */
+  function updateUIDescription(text) {
+    const descElement = document.getElementById('uiDescription');
+    if (descElement) {
+      descElement.textContent = text;
+    }
+  }
+
+  /**
+   * Updates the mode indicator
+   * @param {string} mode - Current mode
+   */
+  function updateModeIndicator(mode) {
+    const modeElement = document.getElementById('modeIndicator');
+    if (modeElement) {
+      modeElement.textContent = `Mode: ${mode}`;
+    }
+  }
+
+
 
   /**
    * Sets up UI event handlers
    */
   function setupUIHandlers() {
-    // Setup randomize button
-    document.getElementById('randomBtn').onclick = () => {
-      mbtiUI.randomize();
+    // Setup reset chat button
+    document.getElementById('resetChatBtn').onclick = () => {
+      if (chatUI) {
+        chatUI.reset();
+        currentMode = 'chat';
+        updateUIDescription('Chat with Pablo to create your portrait');
+        updateModeIndicator('Chat - Talk to Pablo');
+        portraitSize = CONFIG.CANVAS.SIZE_RATIO;
+      }
     };
+  }
+
+  /**
+   * Starts morphing animation to new MBTI values
+   * @param {Array} targetValues - Target MBTI values to morph to
+   */
+  function startMorphingTo(targetValues) {
+    morphStartValues = [...currentMBTIValues];
+    morphTarget = [...targetValues];
+    morphStartTime = millis();
+
+    console.log('Starting morph from', morphStartValues, 'to', morphTarget);
+  }
+
+  /**
+   * Updates morphing animation and returns current interpolated values
+   */
+  function updateMorphing() {
+    if (!morphTarget) return;
+
+    const currentTime = millis();
+    const elapsed = currentTime - morphStartTime;
+    const progress = Math.min(elapsed / morphDuration, 1);
+
+    // Use easing function for smooth animation
+    const easedProgress = easeOutCubic(progress);
+
+    // Interpolate between start and target values
+    const interpolatedValues = morphStartValues.map((start, i) => {
+      const target = morphTarget[i];
+      return start + (target - start) * easedProgress;
+    });
+
+    // Update current values
+    currentMBTIValues = interpolatedValues;
+    currentFaceParams = calculateFaceParametersFromMBTI(currentMBTIValues);
+    updateParameterDisplay();
+
+    // Update global references
+    FaceApp.currentMBTIValues = currentMBTIValues;
+    FaceApp.currentFaceParams = currentFaceParams;
+
+    // Check if morphing is complete
+    if (progress >= 1) {
+      morphTarget = null;
+      morphStartValues = null;
+      console.log('Morph complete at values:', currentMBTIValues);
+    }
+  }
+
+  /**
+   * Easing function for smooth morphing animation
+   * @param {number} t - Progress value 0-1
+   * @returns {number} Eased value 0-1
+   */
+  function easeOutCubic(t) {
+    return 1 - Math.pow(1 - t, 3);
   }
 
   /**
@@ -115,12 +291,18 @@
    * @param {Array} mbtiValues - Array of 4 MBTI values [e_i, s_n, t_f, j_p] each in [-1, 1]
    */
   function handleMBTIChange(mbtiValues) {
-    currentMBTIValues = mbtiValues;
-    currentFaceParams = mbtiUI.calculateFaceParameters();
-    updateParameterDisplay();
-  }
+    // Stop any ongoing morphing when user manually adjusts
+    morphTarget = null;
+    morphStartValues = null;
 
-  /**
+    currentMBTIValues = mbtiValues;
+    currentFaceParams = calculateFaceParametersFromMBTI(currentMBTIValues);
+    updateParameterDisplay();
+
+    // Update global references
+    FaceApp.currentMBTIValues = currentMBTIValues;
+    FaceApp.currentFaceParams = currentFaceParams;
+  }  /**
    * Updates the parameter display in the UI
    */
   function updateParameterDisplay() {
@@ -333,14 +515,32 @@
       return;
     }
 
+    // Update morphing animation if active
+    updateMorphing();
+
     // Clear canvas and graphics buffer
     background(CONFIG.CANVAS.BACKGROUND_COLOR);
     pg.clear();
 
-    // Calculate rendering parameters
-    const size = Math.min(width, height) * CONFIG.CANVAS.SIZE_RATIO;
-    const cx = width / 2;  // Center X
-    const cy = height / 2; // Center Y
+    // Calculate rendering parameters based on current mode
+    const baseSize = Math.min(width, height) * portraitSize;
+    const size = baseSize;
+
+    // Position portrait consistently regardless of mode
+    // Calculate position based on iPhone placement to ensure good centering
+    const iphoneRight = CONFIG.CHAT.IPHONE.POSITION.RIGHT_MARGIN + CONFIG.CHAT.IPHONE.WIDTH;
+    const availableWidth = width - iphoneRight;
+
+    let cx, cy;
+    if (currentMode === 'qa' || currentMode === 'chat') {
+      // Position portrait in the available space to the left of the iPhone
+      cx = availableWidth / 2; // Center in available left space
+      cy = height / 2 + (height * CONFIG.CHAT.PORTRAIT.POSITION.VERTICAL_CENTER_OFFSET_RATIO);
+    } else {
+      // Keep same position for consistency
+      cx = availableWidth / 2; // Same position as QA mode
+      cy = height / 2 + (height * CONFIG.CHAT.PORTRAIT.POSITION.VERTICAL_CENTER_OFFSET_RATIO);
+    }
 
     // Get face data based on current MBTI parameters
     const facePoints = generateMBTIFace(currentFaceParams);
@@ -433,5 +633,10 @@
       console.log('Sample face set:', faceSets[0]);
     }
   };
+
+  // Expose globals for phone slider access
+  FaceApp.currentMBTIValues = currentMBTIValues;
+  FaceApp.currentFaceParams = currentFaceParams;
+  window.handleMBTIChange = handleMBTIChange;
 
 })(window);

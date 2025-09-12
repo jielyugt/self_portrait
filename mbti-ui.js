@@ -19,6 +19,7 @@
       this.container = document.getElementById(containerId);
       this.onChange = onChange;
       this.values = [...CONFIG.MBTI.DEFAULT_VALUES]; // [e_i, s_n, t_f, j_p]
+      this.readOnly = false; // Whether sliders are interactive or view-only
 
       this.createSliders();
       this.updateDisplay();
@@ -51,7 +52,7 @@
         slider.max = '1';
         slider.step = '0.01';
         slider.value = this.values[index];
-        slider.style.cssText = 'width: 100%; accent-color: #000;';
+        slider.style.cssText = `width: 100%; accent-color: #000; ${this.readOnly ? 'pointer-events: none; opacity: 0.6;' : ''}`;
         slider.id = `mbti-slider-${index}`;
 
         // Create value display and labels container
@@ -70,8 +71,10 @@
         rightLabel.textContent = dimension.right;
         rightLabel.style.cssText = 'font-size: 10px; color: #666; flex: 1; text-align: right;';
 
-        // Add event listener
+        // Add event listener (only if not read-only)
         slider.addEventListener('input', (e) => {
+          if (this.readOnly) return;
+
           const value = parseFloat(e.target.value);
           this.values[index] = value;
           this.updateValueDisplay(index);
@@ -127,9 +130,200 @@
     }
 
     /**
+     * Sets read-only mode for the sliders
+     * @param {boolean} readOnly - Whether sliders should be read-only
+     */
+    setReadOnly(readOnly) {
+      this.readOnly = readOnly;
+
+      // Update existing sliders
+      CONFIG.MBTI.DIMENSIONS.forEach((_, index) => {
+        const slider = document.getElementById(`mbti-slider-${index}`);
+        if (slider) {
+          if (readOnly) {
+            slider.style.pointerEvents = 'none';
+            slider.style.opacity = '0.6';
+          } else {
+            slider.style.pointerEvents = '';
+            slider.style.opacity = '1';
+          }
+        }
+      });
+    }
+
+    /**
+     * Hide the MBTI sliders completely
+     */
+    hide() {
+      this.container.style.display = 'none';
+    }
+
+    /**
+     * Show the MBTI sliders in the left panel
+     */
+    showInPanel() {
+      this.container.style.display = 'block';
+      this.readOnly = false;
+      this.updateSliderStyles();
+    }
+
+    /**
+     * Show the MBTI sliders inside the phone interface
+     */
+    showInPhone() {
+      // Hide the left panel sliders
+      this.container.style.display = 'none';
+
+      // Create or update phone sliders
+      this.createPhoneSliders();
+      this.readOnly = false;
+    }
+
+    /**
+     * Create sliders inside the phone interface
+     */
+    createPhoneSliders() {
+      // Find the chat container
+      const chatContainer = document.getElementById('chatContainer');
+      if (!chatContainer) return;
+
+      // Remove existing phone sliders
+      const existingPhoneSliders = document.getElementById('phoneSliders');
+      if (existingPhoneSliders) {
+        existingPhoneSliders.remove();
+      }
+
+      // Create phone sliders container
+      const phoneSlidersContainer = document.createElement('div');
+      phoneSlidersContainer.id = 'phoneSliders';
+      phoneSlidersContainer.style.cssText = `
+        position: fixed;
+        right: ${CONFIG.CHAT.IPHONE.POSITION.RIGHT_MARGIN + 20}px;
+        top: 50%;
+        transform: translateY(-50%);
+        width: ${CONFIG.CHAT.IPHONE.WIDTH - 40}px;
+        height: ${CONFIG.CHAT.IPHONE.HEIGHT - 160}px;
+        background: rgba(255, 255, 255, 0.95);
+        border-radius: 20px;
+        padding: 20px;
+        box-sizing: border-box;
+        z-index: 15;
+        overflow-y: auto;
+      `;
+
+      // Add title
+      const title = document.createElement('div');
+      title.textContent = 'Adjust Your Portrait';
+      title.style.cssText = 'font-weight: bold; margin-bottom: 15px; text-align: center; font-size: 14px;';
+      phoneSlidersContainer.appendChild(title);
+
+      // Create sliders for phone
+      CONFIG.MBTI.DIMENSIONS.forEach((dimension, index) => {
+        const sliderContainer = document.createElement('div');
+        sliderContainer.style.marginBottom = '15px';
+
+        const slider = document.createElement('input');
+        slider.type = 'range';
+        slider.min = '-1';
+        slider.max = '1';
+        slider.step = '0.01';
+        slider.value = this.values[index];
+        slider.style.cssText = 'width: 100%; accent-color: #007AFF; margin-bottom: 5px;';
+        slider.id = `phone-slider-${index}`;
+
+        const labelContainer = document.createElement('div');
+        labelContainer.style.cssText = 'display: flex; justify-content: space-between; align-items: center; font-size: 10px;';
+
+        const leftLabel = document.createElement('span');
+        leftLabel.textContent = dimension.left;
+        leftLabel.style.color = '#666';
+
+        const valueDisplay = document.createElement('span');
+        valueDisplay.id = `phone-value-${index}`;
+        valueDisplay.style.cssText = 'font-weight: bold; font-size: 11px; padding: 0 8px;';
+
+        const rightLabel = document.createElement('span');
+        rightLabel.textContent = dimension.right;
+        rightLabel.style.color = '#666';
+
+        // Add event listener
+        slider.addEventListener('input', (e) => {
+          const value = parseFloat(e.target.value);
+          this.values[index] = value;
+          this.updatePhoneValueDisplay(index);
+          if (this.onChange) {
+            this.onChange([...this.values]);
+          }
+        });
+
+        labelContainer.appendChild(leftLabel);
+        labelContainer.appendChild(valueDisplay);
+        labelContainer.appendChild(rightLabel);
+
+        sliderContainer.appendChild(slider);
+        sliderContainer.appendChild(labelContainer);
+        phoneSlidersContainer.appendChild(sliderContainer);
+      });
+
+      chatContainer.appendChild(phoneSlidersContainer);
+      this.updatePhoneDisplay();
+    }
+
+    /**
+     * Update phone slider display values
+     */
+    updatePhoneDisplay() {
+      CONFIG.MBTI.DIMENSIONS.forEach((_, index) => {
+        this.updatePhoneValueDisplay(index);
+      });
+    }
+
+    /**
+     * Update a specific phone slider value display
+     */
+    updatePhoneValueDisplay(index) {
+      const valueElement = document.getElementById(`phone-value-${index}`);
+      if (valueElement) {
+        const value = this.values[index];
+        const dimension = CONFIG.MBTI.DIMENSIONS[index];
+
+        let displayText;
+        if (Math.abs(value) < 0.1) {
+          displayText = 'Neutral';
+        } else if (value < 0) {
+          displayText = dimension.left.charAt(0) + Math.abs(value).toFixed(1);
+        } else {
+          displayText = dimension.right.charAt(0) + value.toFixed(1);
+        }
+
+        valueElement.textContent = displayText;
+      }
+    }
+
+    /**
+     * Update slider styles when switching modes
+     */
+    updateSliderStyles() {
+      CONFIG.MBTI.DIMENSIONS.forEach((_, index) => {
+        const slider = document.getElementById(`mbti-slider-${index}`);
+        if (slider) {
+          if (this.readOnly) {
+            slider.style.pointerEvents = 'none';
+            slider.style.opacity = '0.6';
+          } else {
+            slider.style.pointerEvents = '';
+            slider.style.opacity = '1';
+          }
+        }
+      });
+    }
+
+    /**
      * Randomizes all MBTI values
      */
     randomize() {
+      if (this.readOnly) return; // Don't randomize in read-only mode
+
       this.values = this.values.map(() => (Math.random() - 0.5) * 2);
 
       // Update slider elements
@@ -156,15 +350,22 @@
 
       this.values = newValues.map(v => Math.max(-1, Math.min(1, v)));
 
-      // Update slider elements
+      // Update panel slider elements
       CONFIG.MBTI.DIMENSIONS.forEach((_, index) => {
         const slider = document.getElementById(`mbti-slider-${index}`);
         if (slider) {
           slider.value = this.values[index];
         }
+
+        // Also update phone sliders if they exist
+        const phoneSlider = document.getElementById(`phone-slider-${index}`);
+        if (phoneSlider) {
+          phoneSlider.value = this.values[index];
+        }
       });
 
       this.updateDisplay();
+      this.updatePhoneDisplay();
 
       if (this.onChange) {
         this.onChange([...this.values]);

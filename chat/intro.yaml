@@ -1,0 +1,25 @@
+root: start
+nodes:
+  start:
+    text: "Do you want me to draw a portrait for you?"
+    choices:
+      - { label: "Yes please!", next: great }
+      - { label: "Nah", next: upsell_1 }
+
+  great:
+    text: "Great! Let me get to know you first!"
+    next: BEGIN_QA
+
+  upsell_1:
+    text: "I won't charge you..."
+    next: upsell_2
+
+  upsell_2:
+    text: "Are you sure you don't want that?"
+    choices:
+      - { label: "Ok, show me what you got", next: great }
+      - { label: "Nope", next: fine }
+
+  fine:
+    text: "Fine. Try it yourself then"
+    next: BEGIN_SELF
