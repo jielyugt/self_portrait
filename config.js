@@ -22,7 +22,16 @@
       // Portrait size as percentage of minimum viewport dimension
       SIZE_RATIO: 0.9,
       // Background color
-      BACKGROUND_COLOR: '#ffffff'
+      BACKGROUND_COLOR: '#ffffff',
+      // Canvas sizing and positioning
+      ALWAYS_SQUARE: true,     // Make canvas always square for consistent rendering
+      AUTO_CENTER: true,       // Automatically center canvas vertically
+      // Debug border for development (easily toggle on/off)
+      DEBUG_BORDER: {
+        ENABLED: false,       // Set to true to show canvas boundaries
+        COLOR: '#ff0000',     // Border color (red for visibility)
+        WIDTH: 2              // Border width in pixels
+      }
     },
 
     // === VISUAL STYLING ===
@@ -38,6 +47,13 @@
 
       // Component scaling and positioning
       SCALING: {
+        // Head outline scaling and positioning
+        HEAD: {
+          SCALE_X: 1.0,     // Scale factor for width
+          SCALE_Y: 1.0,     // Scale factor for height
+          OFFSET_X: 0.0,    // X position offset
+          OFFSET_Y: -0.07     // Y position offset
+        },
         // Left eye scaling and positioning
         LEFT_EYE: {
           SCALE_X: 0.9,     // Scale factor for width
@@ -57,7 +73,7 @@
           SCALE_X: 1.05,    // Scale factor for width
           SCALE_Y: 0.525,   // Scale factor for height
           OFFSET_X: -0.025, // X position offset
-          OFFSET_Y: 0.3375  // Y position offset
+          OFFSET_Y: 0.3  // Y position offset
         }
       }
     },
@@ -216,9 +232,8 @@
       // Portrait positioning
       PORTRAIT: {
         POSITION: {
-          LEFT_MARGIN: 50,                    // Distance from left edge of viewport
-          VERTICAL_CENTER_OFFSET: -20,        // Fixed pixel offset from vertical center (negative moves up)
-          VERTICAL_CENTER_OFFSET_RATIO: -0.072 // Proportional offset as ratio of viewport height (negative moves up)
+          LEFT_MARGIN: 50                     // Distance from left edge of viewport
+          // Removed hardcoded vertical offsets - now uses automatic centering
         }
       },
 

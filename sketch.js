@@ -507,6 +507,56 @@
   }
 
   /**
+   * Calculate optimal canvas positioning for automatic centering
+   */
+  function calculateCanvasPosition() {
+    // Calculate available space accounting for iPhone mockup
+    const iphoneRight = CONFIG.CHAT.IPHONE.POSITION.RIGHT_MARGIN + CONFIG.CHAT.IPHONE.WIDTH;
+    const availableWidth = width - iphoneRight;
+
+    // Calculate canvas size (square, based on portrait size setting)
+    const canvasSize = Math.min(availableWidth, height) * portraitSize;
+
+    // Center horizontally in available space (between left edge and iPhone)
+    const cx = availableWidth / 2;
+
+    // Center vertically in viewport (no hardcoded offsets)
+    const cy = height / 2;
+
+    return {
+      cx,
+      cy,
+      canvasSize,
+      // Calculate canvas bounds for debug border
+      canvasLeft: cx - canvasSize / 2,
+      canvasTop: cy - canvasSize / 2,
+      canvasRight: cx + canvasSize / 2,
+      canvasBottom: cy + canvasSize / 2
+    };
+  }
+
+  /**
+   * Draw debug border around the canvas area if enabled
+   */
+  function drawDebugBorder(canvasInfo) {
+    if (!CONFIG.CANVAS.DEBUG_BORDER.ENABLED) return;
+
+    // Draw debug border using p5.js
+    push();
+    noFill();
+    stroke(CONFIG.CANVAS.DEBUG_BORDER.COLOR);
+    strokeWeight(CONFIG.CANVAS.DEBUG_BORDER.WIDTH);
+    rectMode(CORNERS);
+    rect(
+      canvasInfo.canvasLeft,
+      canvasInfo.canvasTop,
+      canvasInfo.canvasRight,
+      canvasInfo.canvasBottom
+    );
+    pop();
+  }
+
+  /**
    * p5.js draw function - main rendering loop
    */
   window.draw = function () {
@@ -522,25 +572,9 @@
     background(CONFIG.CANVAS.BACKGROUND_COLOR);
     pg.clear();
 
-    // Calculate rendering parameters based on current mode
-    const baseSize = Math.min(width, height) * portraitSize;
-    const size = baseSize;
-
-    // Position portrait consistently regardless of mode
-    // Calculate position based on iPhone placement to ensure good centering
-    const iphoneRight = CONFIG.CHAT.IPHONE.POSITION.RIGHT_MARGIN + CONFIG.CHAT.IPHONE.WIDTH;
-    const availableWidth = width - iphoneRight;
-
-    let cx, cy;
-    if (currentMode === 'qa' || currentMode === 'chat') {
-      // Position portrait in the available space to the left of the iPhone
-      cx = availableWidth / 2; // Center in available left space
-      cy = height / 2 + (height * CONFIG.CHAT.PORTRAIT.POSITION.VERTICAL_CENTER_OFFSET_RATIO);
-    } else {
-      // Keep same position for consistency
-      cx = availableWidth / 2; // Same position as QA mode
-      cy = height / 2 + (height * CONFIG.CHAT.PORTRAIT.POSITION.VERTICAL_CENTER_OFFSET_RATIO);
-    }
+    // Calculate optimal canvas positioning
+    const canvasInfo = calculateCanvasPosition();
+    const { cx, cy, canvasSize } = canvasInfo;
 
     // Get face data based on current MBTI parameters
     const facePoints = generateMBTIFace(currentFaceParams);
@@ -561,9 +595,12 @@
       mouth: facePoints.mouth
     };
 
-    // Render the complete face
-    composeFace(pg, points, cx, cy, size);
+    // Render the complete face using the calculated position and size
+    composeFace(pg, points, cx, cy, canvasSize);
     image(pg, 0, 0);
+
+    // Draw debug border if enabled
+    drawDebugBorder(canvasInfo);
   };
 
   /**

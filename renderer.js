@@ -52,8 +52,9 @@
    * @param {number} size - Overall face size
    */
   function composeFace(pg, parts, cx, cy, size) {
-    // Draw head outline (1:1 scale)
-    drawPolyline(pg, parts.head, cx, cy, size, size, {
+    // Draw head outline with configured scaling and positioning
+    const headScaled = scaleAndPositionPoints(parts.head, CONFIG.VISUAL.SCALING.HEAD);
+    drawPolyline(pg, headScaled, cx, cy, size, size, {
       weight: CONFIG.VISUAL.LINE_WEIGHTS.HEAD
     });
 
