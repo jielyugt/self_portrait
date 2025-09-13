@@ -380,29 +380,7 @@
       return [...this.values];
     }
 
-    /**
-     * Calculates face shape parameters from MBTI values using the config weights
-     * @returns {Object} Object with calculated feature parameters
-     */
-    calculateFaceParameters() {
-      const params = {};
 
-      // Calculate each feature parameter using weighted sum
-      Object.keys(CONFIG.MBTI.FEATURE_WEIGHTS).forEach(feature => {
-        const weights = CONFIG.MBTI.FEATURE_WEIGHTS[feature];
-        let value = 0;
-
-        // Only add weights that exist for this feature
-        if (weights.e_i !== undefined) value += weights.e_i * this.values[0];  // E/I dimension
-        if (weights.s_n !== undefined) value += weights.s_n * this.values[1];  // S/N dimension  
-        if (weights.t_f !== undefined) value += weights.t_f * this.values[2];  // T/F dimension
-        if (weights.j_p !== undefined) value += weights.j_p * this.values[3];  // J/P dimension
-
-        params[feature] = value;
-      });
-
-      return params;
-    }
   }
 
   FaceApp.MBTIUI = MBTIUI;

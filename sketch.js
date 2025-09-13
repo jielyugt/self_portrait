@@ -7,10 +7,7 @@
 
   // Import modules and configuration
   const { CONFIG } = FaceApp;
-  const { Morph } = FaceApp;
-  const { LIB, exportJSON, importJSONFile } = FaceApp.Shapes;
   const { composeFace } = FaceApp.Renderer;
-  const { initUI } = FaceApp.UI;
 
   // Global state variables
   let pg;                                              // Off-screen graphics buffer
@@ -121,7 +118,9 @@
     });
 
     return params;
-  }  /**
+  }
+
+  /**
    * Initializes the Chat UI component
    */
   function initializeChatUI() {
@@ -696,22 +695,50 @@
    */
   window.keyPressed = function () {
     if (key.toLowerCase() === CONFIG.UI.SHORTCUTS.SAVE_KEY) {
-      saveCanvas(CONFIG.UI.FILES.EXPORT_NAME, 'png');
+      saveCanvasArea();
     }
   };
 
-  // Debug function to test the system
-  window.debugMBTI = function () {
-    console.log('=== MBTI System Debug ===');
-    console.log('Face sets loaded:', faceSets.length);
-    console.log('Current MBTI values:', currentMBTIValues);
-    console.log('Current face params:', currentFaceParams);
-    console.log('MBTI UI exists:', !!mbtiUI);
-
-    if (faceSets.length > 0) {
-      console.log('Sample face set:', faceSets[0]);
+  /**
+   * Saves only the face canvas area as a square image
+   */
+  function saveCanvasArea() {
+    // Calculate the current canvas position and size
+    const canvasInfo = calculateCanvasPosition();
+    const { canvasSize } = canvasInfo;
+    
+    // Create a square canvas for the face
+    const faceCanvas = createGraphics(canvasSize, canvasSize);
+    
+    // Set background color (not transparent)
+    faceCanvas.background(CONFIG.CANVAS.BACKGROUND_COLOR);
+    
+    // Get current face data
+    const facePoints = generateMBTIFace(currentFaceParams);
+    if (!facePoints) {
+      console.error('No face data available');
+      return;
     }
-  };
+    
+    // Apply same animation as main canvas
+    const movementStrength = (currentFaceParams.movement || 0) * 0.5 + 0.5;
+    const points = {
+      head: CONFIG.ANIMATION.ORGANIC_NOISE.ENABLED
+        ? addOrganicNoise(facePoints.head, millis(), movementStrength)
+        : facePoints.head,
+      left_eye: facePoints.left_eye,
+      right_eye: facePoints.right_eye,
+      mouth: facePoints.mouth
+    };
+    
+    // Draw face centered in the square canvas
+    composeFace(faceCanvas, points, canvasSize / 2, canvasSize / 2, canvasSize);
+    
+    // Save the face canvas
+    save(faceCanvas, CONFIG.UI.FILES.EXPORT_NAME, 'png');
+  }
+
+
 
   // Expose globals for phone slider access
   FaceApp.currentMBTIValues = currentMBTIValues;

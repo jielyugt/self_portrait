@@ -873,7 +873,7 @@
         left: 0;
         right: 0;
         text-align: center;
-        font-size: 10px;
+        font-size: 12px;
         color: #666;
         pointer-events: none;
       `;

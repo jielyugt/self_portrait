@@ -23,9 +23,6 @@
       SIZE_RATIO: 0.9,
       // Background color
       BACKGROUND_COLOR: '#ffffff',
-      // Canvas sizing and positioning
-      ALWAYS_SQUARE: true,     // Make canvas always square for consistent rendering
-      AUTO_CENTER: true,       // Automatically center canvas vertically
       // Debug border for development (easily toggle on/off)
       DEBUG_BORDER: {
         ENABLED: false,       // Set to true to show canvas boundaries
@@ -156,10 +153,7 @@
     // === BLENDING ===
     BLENDING: {
       // Default weights when app starts (100% face 1)
-      DEFAULT_WEIGHTS: [1, 0, 0, 0, 0, 0],
-
-      // Minimum weight threshold for calculations
-      MIN_WEIGHT_THRESHOLD: 0.001
+      DEFAULT_WEIGHTS: [1, 0, 0, 0, 0, 0]
     },
 
     // === MBTI SYSTEM ===
@@ -233,7 +227,6 @@
       PORTRAIT: {
         POSITION: {
           LEFT_MARGIN: 50                     // Distance from left edge of viewport
-          // Removed hardcoded vertical offsets - now uses automatic centering
         }
       },
 

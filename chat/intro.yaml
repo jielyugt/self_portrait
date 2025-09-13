@@ -21,5 +21,5 @@ nodes:
       - { label: "Nope", next: fine }
 
   fine:
-    text: "Fine. Try it yourself then"
+    text: "Maybe you would prefer a self-portrait instead"
     next: BEGIN_SELF
