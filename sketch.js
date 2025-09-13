@@ -507,32 +507,69 @@
   }
 
   /**
+   * Check if we're in portrait mode (width < height)
+   */
+  function isPortraitMode() {
+    return width < height;
+  }
+
+  /**
    * Calculate optimal canvas positioning for automatic centering
    */
   function calculateCanvasPosition() {
-    // Calculate available space accounting for iPhone mockup
-    const iphoneRight = CONFIG.CHAT.IPHONE.POSITION.RIGHT_MARGIN + CONFIG.CHAT.IPHONE.WIDTH;
-    const availableWidth = width - iphoneRight;
+    const inPortraitMode = isPortraitMode();
 
-    // Calculate canvas size (square, based on portrait size setting)
-    const canvasSize = Math.min(availableWidth, height) * portraitSize;
+    if (inPortraitMode) {
+      // Portrait mode: canvas goes in top half of screen
+      const topHalfHeight = height * CONFIG.CHAT.RESPONSIVE.CANVAS.TOP_HALF_HEIGHT_RATIO;
+      const availableSize = Math.min(width, topHalfHeight);
+      const canvasSize = availableSize * CONFIG.CHAT.RESPONSIVE.CANVAS.SIZE_RATIO;
 
-    // Center horizontally in available space (between left edge and iPhone)
-    const cx = availableWidth / 2;
+      // Center horizontally in full width
+      const cx = width / 2;
 
-    // Center vertically in viewport (no hardcoded offsets)
-    const cy = height / 2;
+      // Center vertically in top half with optional offset
+      const topHalfCenter = topHalfHeight / 2;
+      const verticalOffset = topHalfHeight * CONFIG.CHAT.RESPONSIVE.CANVAS.VERTICAL_OFFSET;
+      const cy = topHalfCenter + verticalOffset;
 
-    return {
-      cx,
-      cy,
-      canvasSize,
-      // Calculate canvas bounds for debug border
-      canvasLeft: cx - canvasSize / 2,
-      canvasTop: cy - canvasSize / 2,
-      canvasRight: cx + canvasSize / 2,
-      canvasBottom: cy + canvasSize / 2
-    };
+      return {
+        cx,
+        cy,
+        canvasSize,
+        isPortrait: true,
+        // Calculate canvas bounds for debug border
+        canvasLeft: cx - canvasSize / 2,
+        canvasTop: cy - canvasSize / 2,
+        canvasRight: cx + canvasSize / 2,
+        canvasBottom: cy + canvasSize / 2
+      };
+    } else {
+      // Landscape mode: original behavior with iPhone mockup
+      const iphoneRight = CONFIG.CHAT.IPHONE.POSITION.RIGHT_MARGIN + CONFIG.CHAT.IPHONE.WIDTH;
+      const availableWidth = width - iphoneRight;
+
+      // Calculate canvas size (square, based on portrait size setting)
+      const canvasSize = Math.min(availableWidth, height) * portraitSize;
+
+      // Center horizontally in available space (between left edge and iPhone)
+      const cx = availableWidth / 2;
+
+      // Center vertically in viewport (no hardcoded offsets)
+      const cy = height / 2;
+
+      return {
+        cx,
+        cy,
+        canvasSize,
+        isPortrait: false,
+        // Calculate canvas bounds for debug border
+        canvasLeft: cx - canvasSize / 2,
+        canvasTop: cy - canvasSize / 2,
+        canvasRight: cx + canvasSize / 2,
+        canvasBottom: cy + canvasSize / 2
+      };
+    }
   }
 
   /**
@@ -647,6 +684,11 @@
   window.windowResized = function () {
     resizeCanvas(windowWidth, windowHeight);
     pg = createGraphics(windowWidth, windowHeight);
+
+    // Notify chat UI about orientation changes
+    if (chatUI) {
+      chatUI.handleOrientationChange();
+    }
   };
 
   /**
@@ -674,6 +716,7 @@
   // Expose globals for phone slider access
   FaceApp.currentMBTIValues = currentMBTIValues;
   FaceApp.currentFaceParams = currentFaceParams;
+  FaceApp.isPortraitMode = isPortraitMode;
   window.handleMBTIChange = handleMBTIChange;
 
 })(window);

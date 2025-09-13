@@ -44,6 +44,10 @@
       this.flipToggle = null;
       this.phoneSlidersContainer = null;
 
+      // Portrait mode elements
+      this.portraitTextArea = null;
+      this.currentOrientation = 'landscape'; // 'portrait' or 'landscape'
+
       this.init();
     }
 
@@ -57,6 +61,9 @@
       this.createInterface();
       console.log('Interface created, starting conversation');
       this.startConversation();
+
+      // Set initial orientation
+      this.handleOrientationChange();
     }
 
     /**
@@ -276,9 +283,26 @@
     }
 
     /**
-     * Toggle between chat interface and slider interface on the phone
+     * Toggle between chat interface and slider interface
      */
     togglePhoneInterface() {
+      if (this.currentOrientation === 'portrait') {
+        // In portrait mode, toggle MBTI sliders visibility in the portrait text area
+        this.phoneShowingSliders = !this.phoneShowingSliders;
+
+        if (this.phoneShowingSliders) {
+          this.showPortraitSliders();
+          this.updateFlipToggleForPortrait('← show chat');
+        } else {
+          this.hidePortraitSliders();
+          this.updateFlipToggleForPortrait();
+        }
+
+        console.log('Portrait mode MBTI toggle:', this.phoneShowingSliders ? 'showing' : 'hiding');
+        return;
+      }
+
+      // Landscape mode: original phone flipping behavior
       this.phoneShowingSliders = !this.phoneShowingSliders;
 
       if (this.phoneShowingSliders) {
@@ -450,17 +474,32 @@
         CONFIG.CHAT.ANIMATION.MIN_TYPING_TIME * 1000
       );
 
-      // Create typing bubble
-      const typingBubble = this.createTypingBubble();
-      this.chatArea.appendChild(typingBubble);
-      this.scrollToBottom();
+      // Create typing bubbles for both areas
+      let iphoneTypingBubble = null;
+      let portraitTypingBubble = null;
+
+      if (this.chatArea) {
+        iphoneTypingBubble = this.createTypingBubble();
+        this.chatArea.appendChild(iphoneTypingBubble);
+        this.scrollToBottom();
+      }
+
+      if (this.portraitTextArea && this.currentOrientation === 'portrait') {
+        portraitTypingBubble = this.createTypingBubble();
+        this.portraitTextArea.appendChild(portraitTypingBubble);
+        this.scrollPortraitTextAreaToBottom();
+      }
 
       // Wait for typing duration
       await new Promise(resolve => setTimeout(resolve, duration));
 
-      // Remove typing bubble
-      if (typingBubble.parentNode) {
-        typingBubble.parentNode.removeChild(typingBubble);
+      // Remove typing bubbles
+      if (iphoneTypingBubble && iphoneTypingBubble.parentNode) {
+        iphoneTypingBubble.parentNode.removeChild(iphoneTypingBubble);
+      }
+
+      if (portraitTypingBubble && portraitTypingBubble.parentNode) {
+        portraitTypingBubble.parentNode.removeChild(portraitTypingBubble);
       }
     }
 
@@ -469,6 +508,7 @@
      */
     createTypingBubble() {
       const bubble = document.createElement('div');
+      bubble.className = 'typing-indicator'; // Add class for easy identification
       bubble.style.cssText = `
         margin: ${CONFIG.CHAT.BUBBLES.TYPING.MARGIN.TOP}px ${CONFIG.CHAT.BUBBLES.TYPING.MARGIN.RIGHT}px ${CONFIG.CHAT.BUBBLES.TYPING.MARGIN.BOTTOM}px ${CONFIG.CHAT.BUBBLES.TYPING.MARGIN.LEFT}px;
         align-self: flex-start;
@@ -502,11 +542,31 @@
     addMessage(speaker, text, type) {
       console.log('Adding message:', speaker, text, type);
 
-      if (!this.chatArea) {
-        console.error('No chat area available for message');
-        return;
+      // Create message element
+      const messageElement = this.createMessageElement(speaker, text, type);
+
+      // Add to iPhone chat area if it exists
+      if (this.chatArea) {
+        this.chatArea.appendChild(messageElement.cloneNode(true));
+        this.scrollToBottom();
       }
 
+      // Add to portrait text area if it exists and is visible
+      if (this.portraitTextArea && this.currentOrientation === 'portrait') {
+        this.portraitTextArea.appendChild(messageElement.cloneNode(true));
+        this.scrollPortraitTextAreaToBottom();
+      }
+
+      // Add to conversation history
+      this.conversationHistory.push({ speaker, text, type });
+
+      console.log('Message added to chat areas');
+    }
+
+    /**
+     * Create a message element that can be used in both iPhone and portrait modes
+     */
+    createMessageElement(speaker, text, type) {
       const messageContainer = document.createElement('div');
       messageContainer.style.cssText = `
         display: flex;
@@ -536,20 +596,28 @@
       bubble.textContent = text;
       messageContainer.appendChild(bubble);
 
-      this.chatArea.appendChild(messageContainer);
-      this.scrollToBottom();
-
-      // Add to conversation history
-      this.conversationHistory.push({ speaker, text, type });
-
-      console.log('Message added to chat area');
+      return messageContainer;
     }
 
     /**
      * Show choice buttons
      */
     showChoices(choices) {
-      // Create a container for all choice buttons that will be added to chat area
+      // Add choices to both iPhone and portrait areas
+      if (this.chatArea) {
+        this.addChoicesToArea(this.chatArea, choices, () => this.scrollToBottom());
+      }
+
+      if (this.portraitTextArea && this.currentOrientation === 'portrait') {
+        this.addChoicesToArea(this.portraitTextArea, choices, () => this.scrollPortraitTextAreaToBottom());
+      }
+    }
+
+    /**
+     * Add choice buttons to a specific area
+     */
+    addChoicesToArea(targetArea, choices, scrollFunction) {
+      // Create a container for all choice buttons that will be added to the target area
       const choicesContainer = document.createElement('div');
       choicesContainer.className = 'choices-container';
       choicesContainer.style.cssText = `
@@ -560,8 +628,8 @@
         margin: ${CONFIG.CHAT.BUBBLES.USER.MARGIN.Y}px 0;
       `;
 
-      // Add empty container to chat area first
-      this.chatArea.appendChild(choicesContainer);
+      // Add empty container to target area first
+      targetArea.appendChild(choicesContainer);
 
       // Add each choice button one by one with delays
       choices.forEach((choice, index) => {
@@ -617,7 +685,7 @@
 
           // Add button to container (this causes the gradual push-up effect)
           choicesContainer.appendChild(button);
-          this.scrollToBottom();
+          scrollFunction();
         }, CONFIG.CHAT.ANIMATION.CHOICE_INITIAL_DELAY * 1000 + (index * CONFIG.CHAT.ANIMATION.CHOICE_STAGGER_DELAY * 1000));
       });
     }
@@ -626,9 +694,17 @@
      * Hide choice buttons
      */
     hideChoices() {
-      // Remove all choice containers from chat area
-      const choiceContainers = this.chatArea.querySelectorAll('.choices-container');
-      choiceContainers.forEach(container => container.remove());
+      // Remove all choice containers from iPhone chat area
+      if (this.chatArea) {
+        const choiceContainers = this.chatArea.querySelectorAll('.choices-container');
+        choiceContainers.forEach(container => container.remove());
+      }
+
+      // Remove all choice containers from portrait text area
+      if (this.portraitTextArea) {
+        const portraitChoiceContainers = this.portraitTextArea.querySelectorAll('.choices-container');
+        portraitChoiceContainers.forEach(container => container.remove());
+      }
     }
 
     /**
@@ -817,9 +893,377 @@
       }
     }
 
+    /**
+     * Show MBTI sliders in portrait text area
+     */
+    showPortraitSliders() {
+      if (!this.portraitTextArea) return;
+
+      // Clear existing content and create sliders container
+      this.portraitTextArea.innerHTML = '';
+
+      const slidersContainer = document.createElement('div');
+      slidersContainer.className = 'portrait-sliders-container';
+      slidersContainer.style.cssText = `
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        height: 100%;
+        gap: 15px;
+        padding: 15px;
+        box-sizing: border-box;
+      `;
+
+      // Get current values for display
+      const getCurrentMBTIValues = () => {
+        if (window.FaceApp && window.FaceApp.currentMBTIValues) {
+          return [...window.FaceApp.currentMBTIValues];
+        }
+        return [0, 0, 0, 0];
+      };
+      const currentValues = getCurrentMBTIValues();
+
+      // Create sliders for each MBTI dimension (scaled appropriately for portrait mode)
+      CONFIG.MBTI.DIMENSIONS.forEach((dimension, index) => {
+        const sliderContainer = document.createElement('div');
+        sliderContainer.style.cssText = 'display: flex; flex-direction: column; align-items: center;';
+
+        // Label - smaller and more compact
+        const label = document.createElement('div');
+        label.textContent = `${dimension.left} / ${dimension.right}`;
+        label.style.cssText = 'font-size: 12px; color: #666; margin-bottom: 8px; text-align: center; font-weight: 500;';
+        sliderContainer.appendChild(label);
+
+        // Slider
+        const slider = document.createElement('input');
+        slider.type = 'range';
+        slider.min = '-1';
+        slider.max = '1';
+        slider.step = '0.01';
+        slider.value = currentValues[index] || 0;
+
+        const isReadOnly = this.currentWorkflowMode === 'qa';
+
+        // Slider styling - scaled down for portrait mode
+        slider.style.cssText = `
+          width: 80%;
+          height: 2px;
+          background: #ddd;
+          outline: none;
+          border-radius: 1px;
+          appearance: none;
+          -webkit-appearance: none;
+          ${isReadOnly ? 'pointer-events: none; opacity: 0.6;' : ''}
+        `;
+
+        // Style the slider thumb (the dot) - appropriately sized for portrait mode
+        const styleSheet = document.createElement('style');
+        styleSheet.textContent = `
+          #portrait-slider-${index}::-webkit-slider-thumb {
+            appearance: none;
+            -webkit-appearance: none;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #000;
+            cursor: ${isReadOnly ? 'default' : 'pointer'};
+          }
+          #portrait-slider-${index}::-moz-range-thumb {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #000;
+            cursor: ${isReadOnly ? 'default' : 'pointer'};
+            border: none;
+          }
+        `;
+        document.head.appendChild(styleSheet);
+
+        slider.id = `portrait-slider-${index}`;
+        sliderContainer.appendChild(slider);
+
+        // Add event listener (only if not read-only)
+        if (!isReadOnly) {
+          slider.addEventListener('input', (e) => {
+            const value = parseFloat(e.target.value);
+            // Notify parent app of the change
+            if (window.FaceApp && window.handleMBTIChange) {
+              const newValues = getCurrentMBTIValues();
+              newValues[index] = value;
+              window.handleMBTIChange(newValues);
+            }
+          });
+        }
+
+        slidersContainer.appendChild(sliderContainer);
+      });
+
+      this.portraitTextArea.appendChild(slidersContainer);
+    }
+
+    /**
+     * Hide MBTI sliders in portrait text area and restore chat
+     */
+    hidePortraitSliders() {
+      if (!this.portraitTextArea) return;
+
+      // Clear sliders and restore conversation
+      this.portraitTextArea.innerHTML = '';
+      this.copyConversationToPortraitArea();
+    }
 
 
 
+
+
+    /**
+     * Handle orientation changes
+     */
+    handleOrientationChange() {
+      const isPortrait = window.FaceApp && window.FaceApp.isPortraitMode ? window.FaceApp.isPortraitMode() : window.innerWidth < window.innerHeight;
+      const newOrientation = isPortrait ? 'portrait' : 'landscape';
+
+      if (newOrientation === this.currentOrientation) {
+        return; // No change
+      }
+
+      console.log('Orientation changed to:', newOrientation);
+      this.currentOrientation = newOrientation;
+
+      if (isPortrait) {
+        this.switchToPortraitMode();
+      } else {
+        this.switchToLandscapeMode();
+      }
+    }
+
+    /**
+     * Switch to portrait mode layout
+     */
+    switchToPortraitMode() {
+      // Reset portrait slider state when switching to portrait
+      this.phoneShowingSliders = false;
+
+      // Hide iPhone mockup
+      if (this.iphoneElement) {
+        this.iphoneElement.style.display = 'none';
+      }
+
+      // Hide phone sliders if showing
+      this.hidePhoneSliders();
+
+      // Create and show portrait text area
+      this.createPortraitTextArea();
+
+      // Update flip toggle for portrait mode
+      this.updateFlipToggleForPortrait();
+
+      // Add portrait mode class to body
+      document.body.classList.add('portrait-mode');
+
+      console.log('Switched to portrait mode');
+    }
+
+    /**
+     * Switch to landscape mode layout
+     */
+    switchToLandscapeMode() {
+      // Reset portrait slider state when switching to landscape
+      this.phoneShowingSliders = false;
+
+      // Show iPhone mockup
+      if (this.iphoneElement) {
+        this.iphoneElement.style.display = 'block';
+      }
+
+      // Hide portrait text area
+      this.hidePortraitTextArea();
+
+      // Update flip toggle for landscape mode
+      this.updateFlipToggleForLandscape();
+
+      // Remove portrait mode class from body
+      document.body.classList.remove('portrait-mode');
+
+      console.log('Switched to landscape mode');
+    }
+
+    /**
+     * Create portrait text area in bottom half of screen
+     */
+    createPortraitTextArea() {
+      // Remove existing portrait text area
+      this.hidePortraitTextArea();
+
+      const config = CONFIG.CHAT.RESPONSIVE.TEXT_AREA;
+      const canvasConfig = CONFIG.CHAT.RESPONSIVE.CANVAS;
+      const viewportWidth = window.innerWidth;
+      const viewportHeight = window.innerHeight;
+
+      // Calculate the center line position based on TOP_HALF_HEIGHT_RATIO
+      const centerLinePosition = viewportHeight * canvasConfig.TOP_HALF_HEIGHT_RATIO;
+
+      // Calculate the allocated bottom area height (from center line to bottom of screen)
+      const bottomAreaHeight = viewportHeight * (1 - canvasConfig.TOP_HALF_HEIGHT_RATIO);
+
+      // Calculate actual text area dimensions - limited by MAX_HEIGHT_RATIO within bottom area
+      const maxTextAreaHeight = bottomAreaHeight * config.MAX_HEIGHT_RATIO;
+      const areaWidth = viewportWidth * config.WIDTH_RATIO;
+      const horizontalMargin = viewportWidth * config.HORIZONTAL_MARGIN_RATIO;
+      const verticalPadding = maxTextAreaHeight * config.VERTICAL_PADDING_RATIO;
+
+      // Position text area so its TOP aligns with the center line (boundary between top/bottom areas)
+      const bottom = viewportHeight - centerLinePosition - maxTextAreaHeight; // Distance from bottom of viewport
+      const left = horizontalMargin;
+
+      // Create portrait text area container
+      this.portraitTextArea = document.createElement('div');
+      this.portraitTextArea.className = 'portrait-text-area';
+      this.portraitTextArea.style.cssText = `
+        position: fixed;
+        left: ${left}px;
+        bottom: ${bottom}px;
+        width: ${areaWidth}px;
+        height: ${maxTextAreaHeight}px;
+        background: ${config.BACKGROUND};
+        border-radius: ${config.BORDER_RADIUS}px;
+        padding: ${verticalPadding}px ${horizontalMargin}px;
+        box-sizing: border-box;
+        overflow-y: auto;
+        overflow-x: hidden;
+        scrollbar-width: none;
+        -ms-overflow-style: none;
+        font-family: ${CONFIG.CHAT.TEXT.FONT_FAMILY};
+        mask: linear-gradient(to bottom, 
+          transparent 0px,
+          black 20px,
+          black calc(100% - 20px),
+          transparent 100%
+        );
+        -webkit-mask: linear-gradient(to bottom, 
+          transparent 0px,
+          black 20px,
+          black calc(100% - 20px),
+          transparent 100%
+        );
+        display: block;
+        z-index: 10;
+      `;
+
+      // Hide scrollbar
+      this.portraitTextArea.style.setProperty('-webkit-scrollbar', 'none');
+
+      // Copy existing conversation to portrait text area
+      this.copyConversationToPortraitArea();
+
+      this.container.appendChild(this.portraitTextArea);
+
+      console.log('Portrait text area created');
+    }
+
+    /**
+     * Hide portrait text area
+     */
+    hidePortraitTextArea() {
+      if (this.portraitTextArea) {
+        this.portraitTextArea.remove();
+        this.portraitTextArea = null;
+      }
+    }
+
+    /**
+     * Copy existing conversation from iPhone chat area to portrait text area
+     */
+    copyConversationToPortraitArea() {
+      if (!this.portraitTextArea || !this.chatArea) {
+        return;
+      }
+
+      // Clear portrait area
+      this.portraitTextArea.innerHTML = '';
+
+      // Clone conversation elements from iPhone chat area, but filter out typing indicators
+      const chatElements = this.chatArea.children;
+      for (let i = 0; i < chatElements.length; i++) {
+        const element = chatElements[i];
+
+        // Skip typing indicators - check for typing-indicator class or typing-dot animation
+        const isTypingIndicator = element.classList.contains('typing-indicator') ||
+          element.querySelector('div[style*="animation: typing-dot"]') !== null;
+        if (isTypingIndicator) {
+          console.log('Skipping typing indicator during conversation copy');
+          continue;
+        }
+
+        const clone = element.cloneNode(true);
+        this.portraitTextArea.appendChild(clone);
+      }
+
+      // Scroll to bottom
+      this.scrollPortraitTextAreaToBottom();
+    }
+
+    /**
+     * Update flip toggle text and position for portrait mode
+     * @param {string} customText - Optional custom text to override default
+     */
+    updateFlipToggleForPortrait(customText = null) {
+      if (!this.flipToggle) return;
+
+      const config = CONFIG.CHAT.RESPONSIVE.TEXT_AREA.FLIP_TOGGLE;
+      const viewportWidth = window.innerWidth;
+      const viewportHeight = window.innerHeight;
+
+      this.flipToggle.textContent = customText || config.PORTRAIT_TEXT;
+      this.flipToggle.style.cssText = `
+        position: fixed;
+        right: ${viewportWidth * config.RIGHT_OFFSET_RATIO}px;
+        bottom: ${viewportHeight * config.BOTTOM_OFFSET_RATIO}px;
+        transform: none;
+        font-size: 12px;
+        color: #666;
+        cursor: pointer;
+        z-index: 10;
+        user-select: none;
+        transition: color 0.2s ease;
+        display: ${(this.currentWorkflowMode === 'qa' || this.currentWorkflowMode === 'self') ? 'block' : 'none'};
+        text-align: center;
+      `;
+    }
+
+    /**
+     * Update flip toggle text and position for landscape mode
+     */
+    updateFlipToggleForLandscape() {
+      if (!this.flipToggle) return;
+
+      this.flipToggle.textContent = this.phoneShowingSliders ? 'flip the phone ←' : 'flip the phone →';
+      this.flipToggle.style.cssText = `
+        position: fixed;
+        right: ${CONFIG.CHAT.IPHONE.POSITION.RIGHT_MARGIN + CONFIG.CHAT.IPHONE.WIDTH / 2}px;
+        top: calc(50% + ${CONFIG.CHAT.IPHONE.POSITION.VERTICAL_CENTER_OFFSET + CONFIG.CHAT.IPHONE.HEIGHT / 2 + 10}px);
+        transform: translate(50%, -50%);
+        font-size: 12px;
+        color: #666;
+        cursor: pointer;
+        z-index: 10;
+        user-select: none;
+        transition: color 0.2s ease;
+        display: ${(this.currentWorkflowMode === 'qa' || this.currentWorkflowMode === 'self') ? 'block' : 'none'};
+        text-align: center;
+      `;
+    }
+
+    /**
+     * Scroll portrait text area to bottom
+     */
+    scrollPortraitTextAreaToBottom() {
+      if (!this.portraitTextArea) return;
+
+      setTimeout(() => {
+        this.portraitTextArea.scrollTop = this.portraitTextArea.scrollHeight;
+      }, 50);
+    }
 
     /**
      * Reset the chat interface
@@ -837,9 +1281,17 @@
         this.chatArea.innerHTML = '';
       }
 
+      if (this.portraitTextArea) {
+        this.portraitTextArea.innerHTML = '';
+      }
+
       this.hideChoices();
       this.hidePhoneSliders();
       this.updateFlipToggleVisibility();
+
+      // Ensure correct orientation-based layout after reset
+      this.handleOrientationChange();
+
       this.startConversation();
     }
   }

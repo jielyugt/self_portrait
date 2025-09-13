@@ -237,6 +237,35 @@
         }
       },
 
+      // Responsive portrait mode settings (width < height)
+      RESPONSIVE: {
+        // Canvas positioning in portrait mode (top half)
+        CANVAS: {
+          TOP_HALF_HEIGHT_RATIO: 0.6,    // How much of screen height to use for top half
+          SIZE_RATIO: 0.9,                // Canvas size as ratio of available space
+          VERTICAL_OFFSET: 0           // Vertical offset from center of top half
+        },
+
+        // Text area positioning in portrait mode (bottom area)
+        TEXT_AREA: {
+          WIDTH_RATIO: 0.9,               // How much of screen width to use
+          HORIZONTAL_MARGIN_RATIO: 0.05,  // Horizontal margins as ratio of width
+          VERTICAL_PADDING_RATIO: 0.03,   // Top/bottom padding as ratio of area height
+          BORDER_RADIUS: 15,              // Border radius for text area
+          BACKGROUND: 'rgba(255, 255, 255, 0.95)', // Background color
+
+          // Text area height limiting - stays within bottom area, never invades figure area
+          MAX_HEIGHT_RATIO: 0.8,          // Max height as ratio of allocated bottom area (calculated as 1 - TOP_HALF_HEIGHT_RATIO)
+
+          // Flip toggle positioning in portrait mode
+          FLIP_TOGGLE: {
+            BOTTOM_OFFSET_RATIO: 0.02,    // Distance from bottom as ratio of screen height
+            RIGHT_OFFSET_RATIO: 0.05,     // Distance from right as ratio of screen width
+            PORTRAIT_TEXT: 'show MBTI ->'    // Text to show in portrait mode
+          }
+        }
+      },
+
       // Chat bubble styling
       BUBBLES: {
         // Pablo's message bubbles (left side)

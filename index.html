@@ -70,6 +70,42 @@
       display: block;
       background: #fff;
     }
+
+    /* Responsive portrait mode styles */
+    @media (orientation: portrait) {
+      body.portrait-mode {
+        /* In portrait mode, let JavaScript handle layout */
+        overflow: hidden;
+      }
+    }
+
+    /* Portrait text area styling */
+    .portrait-text-area {
+      position: fixed;
+      background: rgba(255, 255, 255, 0.95);
+      border-radius: 15px;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+      overflow-y: auto;
+      overflow-x: hidden;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+      mask: linear-gradient(to bottom,
+          transparent 0px,
+          black 20px,
+          black calc(100% - 20px),
+          transparent 100%);
+      -webkit-mask: linear-gradient(to bottom,
+          transparent 0px,
+          black 20px,
+          black calc(100% - 20px),
+          transparent 100%);
+      display: none;
+      /* Hidden by default, shown by JavaScript in portrait mode */
+    }
+
+    .portrait-text-area::-webkit-scrollbar {
+      display: none;
+    }
   </style>
 </head>
 
