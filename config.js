@@ -256,7 +256,7 @@
           MARGIN: {                    // Margin around typing indicator
             TOP: 30,                  // Extra top margin to push down
             BOTTOM: 8,                // Bottom margin
-            LEFT: 40,                 // Left margin
+            LEFT: 20,                 // Left margin
             RIGHT: 20                 // Right margin
           }
         }
