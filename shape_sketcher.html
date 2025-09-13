@@ -40,7 +40,6 @@
       display: flex;
       flex-direction: column;
       padding: 10px;
-      border-right: 1px solid #000;
       height: 100vh;
       min-height: 0;
       box-sizing: border-box;
@@ -113,15 +112,23 @@
       font-size: 12px;
     }
 
-    canvas {
-      display: block;
-      width: 100%;
-      height: 100%;
-      background: #fff;
-    }
+
 
     #canvasWrap {
       position: relative;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+    }
+
+    #c {
+      width: calc(100vh - 120px);
+      height: calc(100vh - 120px);
+      max-width: calc(100vw - 320px);
+      max-height: calc(100vw - 320px);
+      border: 1px solid #000;
+      background: #fff;
     }
 
     input[type="file"] {
@@ -206,13 +213,11 @@
 
         // --- Canvas Space ---
         function updateSpace() {
-          const wrap = document.getElementById('canvasWrap');
-          width = wrap.clientWidth;
-          height = wrap.clientHeight;
+          const rect = canvas.getBoundingClientRect();
+          width = rect.width;
+          height = rect.height;
           canvas.width = Math.round(width * dpr);
           canvas.height = Math.round(height * dpr);
-          canvas.style.width = width + 'px';
-          canvas.style.height = height + 'px';
           ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
           cx = width / 2;
           cy = height / 2;
