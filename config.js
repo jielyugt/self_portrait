@@ -11,6 +11,9 @@
       // Change this to switch face folder easily
       PATH: 'faces',
       COUNT: 6,
+      // Preserve original point counts by default (no pre-normalization)
+      // Set to true only if you want to equalize point counts on load
+      PRE_NORMALIZE_POINTS: false,
       // File paths for face JSON data
       get FILES() {
         return Array.from({ length: this.COUNT }, (_, i) => `${this.PATH}/face_${i + 1}.json`);
@@ -89,8 +92,11 @@
 
       // Morphing animation settings
       MORPH: {
-        DURATION_SEC: 5,    // How long morphing takes
-        SAMPLE_POINTS: 64     // Number of points to resample polylines to
+        DURATION_SEC: 3,      // Reduced for snappier feel
+        SAMPLE_POINTS: 32,    // Optimized point count for performance
+        // When PRE_NORMALIZE_POINTS is false, we'll resample only during
+        // the in-between frames of a morph (not at rest) so originals stay intact
+        RESAMPLE_DURING_MORPH: true
       }
     },
 

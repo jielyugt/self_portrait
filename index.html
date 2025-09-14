@@ -132,16 +132,22 @@
 
   <div id="chatContainer"></div>
 
-  <!-- p5.js Library -->
+  <!-- External Libraries -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.7.0/p5.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
 
   <!-- Application modules (load order is important) -->
   <script src="./config.js"></script> <!-- Configuration must load first -->
   <script src="./morph.js"></script> <!-- Morphing utilities -->
+  <script src="./animation-controller.js"></script> <!-- Animation controller -->
+  <script src="./app-state.js"></script> <!-- Central state management -->
+  <script src="./face-generator.js"></script> <!-- Face data and generation -->
+  <script src="./canvas-manager.js"></script> <!-- Canvas operations -->
+  <script src="./app-controller.js"></script> <!-- Main app controller -->
   <script src="./renderer.js"></script> <!-- Face rendering -->
   <script src="./mbti-ui.js"></script> <!-- MBTI slider interface -->
   <script src="./chat-ui.js"></script> <!-- Chat interface -->
-  <script src="./sketch.js"></script> <!-- Main application logic -->
+  <script src="./sketch.js"></script> <!-- p5.js integration layer -->
 </body>
 
 </html>

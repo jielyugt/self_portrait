@@ -1,87 +1,21 @@
 /**
- * Main sketch file for Portrait Generator
- * Handles p5.js setup, face loading, blending, and rendering
+ * p5.js Integration Layer
+ * Minimal wrapper that bridges p5.js with the modular Portrait App
  */
 (function (root) {
   const FaceApp = (root.FaceApp = root.FaceApp || {});
 
-  // Import modules and configuration
-  const { CONFIG } = FaceApp;
-  const { composeFace } = FaceApp.Renderer;
-
-  // Global state variables
-  let pg;                                              // Off-screen graphics buffer
-  let faceSets = [];                                   // Array of loaded face data
-  let currentMBTIValues = [...CONFIG.MBTI.DEFAULT_VALUES]; // Current MBTI values [e_i, s_n, t_f, j_p]
-  let currentFaceParams = {};                          // Current face shape parameters
-  let chatUI;                                          // Chat UI controller
-  let currentMode = 'chat';                            // Current interaction mode: 'chat', 'self'
-  let portraitSize = CONFIG.CANVAS.SIZE_RATIO;     // Portrait size when chat is active
-
-  // Morphing animation state
-  let morphTarget = null;                              // Target MBTI values for morphing
-  let morphStartTime = 0;                              // When current morph started
-  let morphDuration = CONFIG.ANIMATION.MORPH.DURATION_SEC * 1000; // Morph duration in milliseconds
-  let morphStartValues = null;                         // Starting MBTI values for morph
-
-  // Shape morphing state
-  let currentDisplayShapes = null;                     // Currently displayed face shapes
-  let currentShapeParams = null;                       // Face params that generated current shapes
-  let targetDisplayShapes = null;                      // Target face shapes for morphing
-  let shapeMorphStartTime = 0;                         // When shape morph started
-  let isShapeMorphing = false;                         // Whether we're currently morphing shapes
-  let lastMBTIChangeTime = 0;                          // Time of last MBTI change for debouncing
+  // Main application instance
+  let portraitApp;
 
   /**
-   * p5.js setup function - initializes canvas and loads face data
+   * p5.js setup function - initializes the Portrait App
    */
   window.setup = async function () {
-    createCanvas(windowWidth, windowHeight);
-    pg = createGraphics(windowWidth, windowHeight);
-
-    // Load all face data from JSON files
-    await loadFaceData();
-    console.log('Loaded', faceSets.length, 'face sets');
-
-    // Initialize MBTI system with default values
-    currentMBTIValues = [...CONFIG.MBTI.DEFAULT_VALUES];
-    currentFaceParams = calculateFaceParametersFromMBTI(currentMBTIValues);
-
-    // Initialize display shapes
-    currentDisplayShapes = generateMBTIFace(currentFaceParams);
-
-    // Initialize global references
-    FaceApp.currentMBTIValues = currentMBTIValues;
-    FaceApp.currentFaceParams = currentFaceParams;
-
-    // Setup UI event handlers
-    setupUIHandlers();
-
-    // Initialize the Chat UI for Q&A workflow (after a brief delay to ensure DOM is ready)
-    setTimeout(() => {
-      initializeChatUI();
-      updateModeIndicator('Chat - Talk to Pablo');
-    }, 100);
+    // Create and initialize the main Portrait App
+    portraitApp = new FaceApp.PortraitApp();
+    await portraitApp.initialize();
   };
-
-  /**
-   * Loads face data from JSON files and converts to internal format
-   */
-  async function loadFaceData() {
-    faceSets = await Promise.all(CONFIG.FACES.FILES.map(async (file) => {
-      const data = await fetch(file).then(r => r.json());
-
-      // Convert array format to point objects, map 'face' to 'head'
-      const raw = {
-        head: arrayToPoints(data.face),  // Use 'face' field from JSON
-        left_eye: arrayToPoints(data.left_eye),
-        right_eye: arrayToPoints(data.right_eye),
-        mouth: arrayToPoints(data.mouth)
-      };
-
-      return normalizeFaceSet(raw);
-    }));
-  }
 
   /**
    * Converts array of [x,y] coordinates to array of {x,y} point objects
@@ -195,7 +129,7 @@
 
       // Generate new target shapes and start morphing
       const newShapes = generateMBTIFace(currentFaceParams);
-      startShapeMorphing(newShapes, currentFaceParams);
+      debouncedShapeMorph(newShapes, currentFaceParams);
 
       // Update global references
       FaceApp.currentMBTIValues = currentMBTIValues;
@@ -248,93 +182,64 @@
    * @param {Array} targetValues - Target MBTI values to morph to
    */
   function startMorphingTo(targetValues) {
-    morphStartValues = [...currentMBTIValues];
-    morphTarget = [...targetValues];
-    morphStartTime = millis();
+    // Stop any existing MBTI animation
+    if (mbtiAnimationProgress) {
+      anime.remove(mbtiAnimationProgress);
+    }
 
-    console.log('Starting morph from', morphStartValues, 'to', morphTarget);
+    mbtiAnimationStart = [...currentMBTIValues];
+    mbtiAnimationTarget = [...targetValues];
+    mbtiAnimationStartTime = millis();
+
+    // Create anime.js animation for MBTI values
+    mbtiAnimationProgress = { value: 0 };
+    anime({
+      targets: mbtiAnimationProgress,
+      value: 1,
+      duration: CONFIG.ANIMATION.MORPH.DURATION_SEC * 1000,
+      easing: 'easeOutCubic',
+      update: () => {
+        updateMBTIAnimation();
+      },
+      complete: () => {
+        mbtiAnimationTarget = null;
+        mbtiAnimationStart = null;
+        mbtiAnimationProgress = null;
+        console.log('MBTI morph complete at values:', currentMBTIValues);
+      }
+    });
+
+    console.log('Starting MBTI morph from', mbtiAnimationStart, 'to', mbtiAnimationTarget);
   }
 
   /**
-   * Updates morphing animation and returns current interpolated values
+   * Updates MBTI animation and triggers shape morphing
    */
-  function updateMorphing() {
-    if (!morphTarget) return;
+  function updateMBTIAnimation() {
+    if (!mbtiAnimationTarget || !mbtiAnimationStart) return;
 
-    const currentTime = millis();
-    const elapsed = currentTime - morphStartTime;
-    const progress = Math.min(elapsed / morphDuration, 1);
+    const progress = mbtiAnimationProgress.value;
 
-    // Use easing function for smooth animation
-    const easedProgress = easeOutCubic(progress);
-
-    // Interpolate between start and target values
-    const interpolatedValues = morphStartValues.map((start, i) => {
-      const target = morphTarget[i];
-      return start + (target - start) * easedProgress;
+    // Interpolate MBTI values
+    currentMBTIValues = mbtiAnimationStart.map((start, i) => {
+      const target = mbtiAnimationTarget[i];
+      return start + (target - start) * progress;
     });
 
-    // Update current values
-    currentMBTIValues = interpolatedValues;
+    // Update face parameters
     currentFaceParams = calculateFaceParametersFromMBTI(currentMBTIValues);
     updateParameterDisplay();
 
-    // Generate new target shapes and start shape morphing if parameters changed significantly
+    // Generate new shapes and trigger smooth morphing
     const newShapes = generateMBTIFace(currentFaceParams);
-    if (!isShapeMorphing) {
-      // Check if we need to start a new shape morph due to MBTI parameter changes
-      startShapeMorphing(newShapes, currentFaceParams);
-    }
+    debouncedShapeMorph(newShapes, currentFaceParams);
 
     // Update global references
     FaceApp.currentMBTIValues = currentMBTIValues;
     FaceApp.currentFaceParams = currentFaceParams;
-
-    // Check if MBTI morphing is complete
-    if (progress >= 1) {
-      morphTarget = null;
-      morphStartValues = null;
-      console.log('MBTI morph complete at values:', currentMBTIValues);
-    }
   }
 
-  /**
-   * Checks if two shape objects are equal (same discrete shapes)
-   * @param {Object} shapes1 - First shape object
-   * @param {Object} shapes2 - Second shape object
-   * @returns {boolean} True if shapes are the same
-   */
-  function shapesAreEqual(shapes1, shapes2) {
-    if (!shapes1 || !shapes2) return false;
 
-    const features = ['head', 'left_eye', 'right_eye', 'mouth'];
-    const result = features.every(feature => {
-      const points1 = shapes1[feature] || [];
-      const points2 = shapes2[feature] || [];
-
-      if (points1.length !== points2.length) return false;
-
-      return points1.every((p1, i) => {
-        const p2 = points2[i];
-        return Math.abs(p1.x - p2.x) < 0.001 && Math.abs(p1.y - p2.y) < 0.001;
-      });
-    });
-
-    if (result) {
-      console.log('Shapes determined to be equal');
-    } else {
-      console.log('Shapes are different - morphing should occur');
-    }
-
-    return result;
-  }  /**
-   * Easing function for smooth morphing animation
-   * @param {number} t - Progress value 0-1
-   * @returns {number} Eased value 0-1
-   */
-  function easeOutCubic(t) {
-    return 1 - Math.pow(1 - t, 3);
-  }
 
   /**
    * Handles MBTI value changes from the slider UI
@@ -359,7 +264,7 @@
       getShapeIndices(currentFaceParams, faceSets.length));
 
     // Start morphing based on parameter changes
-    startShapeMorphing(newShapes, currentFaceParams);
+    debouncedShapeMorph(newShapes, currentFaceParams);
 
     // Update global references
     FaceApp.currentMBTIValues = currentMBTIValues;
@@ -418,62 +323,38 @@
   }
 
   /**
-   * Gets the current face shapes to display, handling morphing animation
+   * Gets the current face shapes to display from the animation controller
    * @returns {Object} Current face shapes (either static or morphed)
    */
   function getCurrentDisplayShapes() {
-    // Ensure we always have current display shapes
-    if (!currentDisplayShapes) {
-      currentDisplayShapes = generateMBTIFace(currentFaceParams);
-      console.log('Initialized currentDisplayShapes');
-    }
-
-    // If not morphing, return current static shapes
-    if (!isShapeMorphing || !targetDisplayShapes) {
-      return currentDisplayShapes;
-    }
-
-    // Calculate morph progress
-    const currentTime = millis();
-    const elapsed = currentTime - shapeMorphStartTime;
-    const progress = Math.min(elapsed / morphDuration, 1);
-    const easedProgress = easeOutCubic(progress);
-
-    // Morph each feature
-    const morphedShapes = {
-      head: morphFeaturePoints(currentDisplayShapes.head, targetDisplayShapes.head, easedProgress),
-      left_eye: morphFeaturePoints(currentDisplayShapes.left_eye, targetDisplayShapes.left_eye, easedProgress),
-      right_eye: morphFeaturePoints(currentDisplayShapes.right_eye, targetDisplayShapes.right_eye, easedProgress),
-      mouth: morphFeaturePoints(currentDisplayShapes.mouth, targetDisplayShapes.mouth, easedProgress)
-    };
-
-    // Check if morphing is complete
-    if (progress >= 1) {
-      currentDisplayShapes = targetDisplayShapes;
-      currentShapeParams = { ...currentFaceParams };
-      targetDisplayShapes = null;
-      isShapeMorphing = false;
-      console.log('Shape morph complete');
-    }
-
-    return morphedShapes;
+    return animationController.getCurrentShapes();
   }
 
   /**
-   * Starts shape morphing animation to new face shapes
+   * Debounced shape morphing to prevent jittering from rapid changes
    * @param {Object} newShapes - Target face shapes to morph to
    * @param {Object} newParams - Face parameters that generated the new shapes
    */
-  function startShapeMorphing(newShapes, newParams) {
-    // Ensure we have current shapes to morph from
-    if (!currentDisplayShapes) {
-      currentDisplayShapes = generateMBTIFace(currentFaceParams);
-      currentShapeParams = { ...currentFaceParams };
-      console.log('Initialized currentDisplayShapes for morphing');
+  function debouncedShapeMorph(newShapes, newParams) {
+    // Clear any pending morph
+    if (morphTimeout) {
+      clearTimeout(morphTimeout);
     }
 
+    // Schedule new morph after debounce delay
+    morphTimeout = setTimeout(() => {
+      startShapeMorphingWithController(newShapes, newParams);
+    }, 100); // Reduced debounce since anime.js handles smoothness better
+  }
+
+  /**
+   * Starts shape morphing animation using the animation controller
+   * @param {Object} newShapes - Target face shapes to morph to
+   * @param {Object} newParams - Face parameters that generated the new shapes
+   */
+  function startShapeMorphingWithController(newShapes, newParams) {
     // Check if the discrete shape selections have actually changed by comparing shape indices
-    const currentIndices = getShapeIndices(currentShapeParams || {}, faceSets.length);
+    const currentIndices = getShapeIndices(currentFaceParams || {}, faceSets.length);
     const newIndices = getShapeIndices(newParams, faceSets.length);
 
     const shapeIndicesChanged = JSON.stringify(currentIndices) !== JSON.stringify(newIndices);
@@ -483,17 +364,16 @@
       return;
     }
 
-    // If we're already morphing to shapes with the same indices, don't restart
-    if (isShapeMorphing) {
-      console.log('Already morphing - updating target with new indices:', newIndices);
-      targetDisplayShapes = newShapes;
-      return;
-    }
-
-    // Start new morphing animation
-    targetDisplayShapes = newShapes;
-    shapeMorphStartTime = millis();
-    isShapeMorphing = true;
+    // Use animation controller for smooth morphing
+    animationController.morphTo(
+      newShapes,
+      null, // No update callback needed
+      () => {
+        // Update current face params when morph completes
+        currentFaceParams = { ...newParams };
+        console.log('Shape morph complete with indices:', newIndices);
+      }
+    );
 
     console.log('Starting shape morph from indices:', currentIndices, 'to:', newIndices);
   }
@@ -525,122 +405,9 @@
     // Return the selected face feature directly (no blending)
     const selectedFace = faceSets[selectedIndex];
     return selectedFace ? selectedFace[featureName] || [] : [];
-  }  /**
-   * Safely morphs between two sets of feature points with different point counts
-   * @param {Array} points1 - First set of points
-   * @param {Array} points2 - Second set of points  
-   * @param {number} factor - Blend factor (0 = points1, 1 = points2)
-   * @returns {Array} Morphed points
-   */
-  function morphFeaturePoints(points1, points2, factor) {
-    if (!points1.length && !points2.length) return [];
-    if (!points1.length) return [...points2];
-    if (!points2.length) return [...points1];
-    if (factor <= 0) return [...points1];
-    if (factor >= 1) return [...points2];
-
-    // Determine target point count (use the maximum for smoother morphing)
-    const targetCount = Math.max(points1.length, points2.length);
-
-    // Resample both point arrays to have the same number of points
-    const resampledPoints1 = resamplePoints(points1, targetCount);
-    const resampledPoints2 = resamplePoints(points2, targetCount);
-
-    // Blend the resampled points
-    return resampledPoints1.map((p1, i) => {
-      const p2 = resampledPoints2[i];
-      return {
-        x: p1.x + (p2.x - p1.x) * factor,
-        y: p1.y + (p2.y - p1.y) * factor
-      };
-    });
   }
 
-  /**
-   * Resamples a polyline to have a specific number of points
-   * @param {Array} points - Original points
-   * @param {number} targetCount - Desired number of points
-   * @returns {Array} Resampled points
-   */
-  function resamplePoints(points, targetCount) {
-    if (points.length === 0) return [];
-    if (points.length === targetCount) return [...points];
-    if (targetCount === 1) return [{ ...points[0] }];
 
-    const result = [];
-
-    // Calculate total path length
-    let totalLength = 0;
-    const segmentLengths = [];
-
-    for (let i = 0; i < points.length - 1; i++) {
-      const dx = points[i + 1].x - points[i].x;
-      const dy = points[i + 1].y - points[i].y;
-      const length = Math.sqrt(dx * dx + dy * dy);
-      segmentLengths.push(length);
-      totalLength += length;
-    }
-
-    // Handle closed shapes by adding distance back to first point
-    if (points.length > 2) {
-      const dx = points[0].x - points[points.length - 1].x;
-      const dy = points[0].y - points[points.length - 1].y;
-      const closingLength = Math.sqrt(dx * dx + dy * dy);
-      segmentLengths.push(closingLength);
-      totalLength += closingLength;
-    }
-
-    if (totalLength === 0) {
-      // All points are the same, return copies
-      return Array(targetCount).fill().map(() => ({ ...points[0] }));
-    }
-
-    // Sample points at even intervals along the path
-    for (let i = 0; i < targetCount; i++) {
-      const targetDistance = (i / (targetCount - 1)) * totalLength;
-      const point = getPointAtDistance(points, segmentLengths, targetDistance, totalLength);
-      result.push(point);
-    }
-
-    return result;
-  }
-
-  /**
-   * Gets a point at a specific distance along a polyline path
-   * @param {Array} points - The polyline points
-   * @param {Array} segmentLengths - Pre-calculated segment lengths
-   * @param {number} targetDistance - Distance along path
-   * @param {number} totalLength - Total path length
-   * @returns {Object} Point at the target distance
-   */
-  function getPointAtDistance(points, segmentLengths, targetDistance, totalLength) {
-    if (targetDistance <= 0) return { ...points[0] };
-    if (targetDistance >= totalLength) return { ...points[0] }; // Loop back to start for closed shapes
-
-    let currentDistance = 0;
-
-    for (let i = 0; i < segmentLengths.length; i++) {
-      const segmentEnd = currentDistance + segmentLengths[i];
-
-      if (targetDistance <= segmentEnd) {
-        // Point is within this segment
-        const segmentProgress = (targetDistance - currentDistance) / segmentLengths[i];
-
-        const p1 = points[i];
-        const p2 = i + 1 < points.length ? points[i + 1] : points[0]; // Handle wrap-around
-
-        return {
-          x: p1.x + (p2.x - p1.x) * segmentProgress,
-          y: p1.y + (p2.y - p1.y) * segmentProgress
-        };
-      }
-
-      currentDistance = segmentEnd;
-    }
-
-    // Fallback (shouldn't reach here)
-    return { ...points[0] };
-  }
 
   /**
    * Validates if a point has valid numeric coordinates
@@ -742,100 +509,20 @@
   }
 
   /**
-   * p5.js draw function - main rendering loop
+   * p5.js draw function - delegates to the Portrait App
    */
   window.draw = function () {
-    // Skip rendering if face data hasn't loaded yet
-    if (!faceSets.length) {
-      return;
+    if (portraitApp) {
+      portraitApp.draw();
     }
-
-    // Update morphing animation if active
-    updateMorphing();
-
-    // Clear canvas and graphics buffer
-    background(CONFIG.CANVAS.BACKGROUND_COLOR);
-    pg.clear();
-
-    // Calculate optimal canvas positioning
-    const canvasInfo = calculateCanvasPosition();
-    const { cx, cy, canvasSize } = canvasInfo;
-
-    // Get face data (with morphing if active)
-    const facePoints = getCurrentDisplayShapes();
-
-    // Skip rendering if no face points generated
-    if (!facePoints) {
-      return;
-    }
-
-    // Apply organic animation to head outline if enabled
-    const movementStrength = (currentFaceParams.movement || 0) * 0.5 + 0.5; // Convert [-1,1] to [0,1]
-    const points = {
-      head: CONFIG.ANIMATION.ORGANIC_NOISE.ENABLED
-        ? addOrganicNoise(facePoints.head, millis(), movementStrength)
-        : facePoints.head,
-      left_eye: facePoints.left_eye,
-      right_eye: facePoints.right_eye,
-      mouth: facePoints.mouth
-    };
-
-    // Render the complete face using the calculated position and size
-    composeFace(pg, points, cx, cy, canvasSize);
-    image(pg, 0, 0);
-
-    // Draw debug border if enabled
-    drawDebugBorder(canvasInfo);
   };
-
-  /**
-   * Adds organic noise animation to points for natural movement
-   * @param {Array} points - Array of points to animate
-   * @param {number} time - Current time in milliseconds
-   * @param {number} movementMultiplier - Multiplier for movement strength (0 to 1)
-   * @returns {Array} Points with organic noise applied
-   */
-  function addOrganicNoise(points, time, movementMultiplier = 1) {
-    const config = CONFIG.ANIMATION.ORGANIC_NOISE;
-
-    return points.map((p, i) => {
-      // Calculate time-based animation values
-      const timeX = time * config.TIME_SPEED;
-      const timeY = time * config.TIME_SPEED * config.TIME_OFFSET_Y;
-      const uniqueOffset = i * config.UNIQUE_OFFSET;
-
-      // Generate Perlin noise offsets
-      const offsetX = noise(
-        p.x * config.SCALE + timeX,
-        p.y * config.SCALE,
-        uniqueOffset
-      ) - 0.5;
-
-      const offsetY = noise(
-        p.x * config.SCALE + 1000,
-        p.y * config.SCALE + timeY,
-        uniqueOffset + 100
-      ) - 0.5;
-
-      // Apply noise with configurable strength and movement multiplier
-      const finalStrength = config.STRENGTH * movementMultiplier;
-      return {
-        x: p.x + offsetX * finalStrength,
-        y: p.y + offsetY * finalStrength
-      };
-    });
-  }
 
   /**
    * Handles window resize events
    */
   window.windowResized = function () {
-    resizeCanvas(windowWidth, windowHeight);
-    pg = createGraphics(windowWidth, windowHeight);
-
-    // Notify chat UI about orientation changes
-    if (chatUI) {
-      chatUI.handleOrientationChange();
+    if (portraitApp) {
+      portraitApp.handleResize();
     }
   };
 
@@ -843,56 +530,16 @@
    * Handles keyboard input
    */
   window.keyPressed = function () {
-    if (key.toLowerCase() === CONFIG.UI.SHORTCUTS.SAVE_KEY) {
-      saveCanvasArea();
+    if (portraitApp) {
+      portraitApp.handleKeyPress(key);
     }
   };
 
-  /**
-   * Saves only the face canvas area as a square image
-   */
-  function saveCanvasArea() {
-    // Calculate the current canvas position and size
-    const canvasInfo = calculateCanvasPosition();
-    const { canvasSize } = canvasInfo;
-
-    // Create a square canvas for the face
-    const faceCanvas = createGraphics(canvasSize, canvasSize);
-
-    // Set background color (not transparent)
-    faceCanvas.background(CONFIG.CANVAS.BACKGROUND_COLOR);
-
-    // Get current face data (with morphing if active)
-    const facePoints = getCurrentDisplayShapes();
-    if (!facePoints) {
-      console.error('No face data available');
-      return;
+  // Expose backward compatibility function for phone slider access
+  window.handleMBTIChange = function (mbtiValues) {
+    if (portraitApp) {
+      portraitApp.handleMBTIChange(mbtiValues);
     }
-
-    // Apply same animation as main canvas
-    const movementStrength = (currentFaceParams.movement || 0) * 0.5 + 0.5;
-    const points = {
-      head: CONFIG.ANIMATION.ORGANIC_NOISE.ENABLED
-        ? addOrganicNoise(facePoints.head, millis(), movementStrength)
-        : facePoints.head,
-      left_eye: facePoints.left_eye,
-      right_eye: facePoints.right_eye,
-      mouth: facePoints.mouth
-    };
-
-    // Draw face centered in the square canvas
-    composeFace(faceCanvas, points, canvasSize / 2, canvasSize / 2, canvasSize);
-
-    // Save the face canvas
-    save(faceCanvas, CONFIG.UI.FILES.EXPORT_NAME, 'png');
-  }
-
-
-
-  // Expose globals for phone slider access
-  FaceApp.currentMBTIValues = currentMBTIValues;
-  FaceApp.currentFaceParams = currentFaceParams;
-  FaceApp.isPortraitMode = isPortraitMode;
-  window.handleMBTIChange = handleMBTIChange;
+  };
 
 })(window);
