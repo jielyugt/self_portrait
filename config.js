@@ -186,11 +186,6 @@
           t_f: 0.4
         },
 
-        proportion: {
-          e_i: 0.7,
-          j_p: 0.3
-        },
-
         movement: {
           s_n: -0.4,
           j_p: 0.6
