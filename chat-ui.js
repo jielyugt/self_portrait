@@ -271,16 +271,25 @@
     }
 
     /**
-     * Show or hide the flip toggle based on current mode
+     * Show or hide the flip toggle based on current mode and QA settings
      */
     updateFlipToggleVisibility() {
       if (this.flipToggle) {
-        // Show flip toggle only for QA mode or regular self mode, not for auto self mode
-        if ((this.currentWorkflowMode === 'qa' || this.currentWorkflowMode === 'self') && !this.isAutoSelfMode) {
+        // Check QA mode configuration
+        const qaConfig = CONFIG.CHAT.QA_MODE;
+
+        if (this.currentWorkflowMode === 'qa' && !qaConfig.HIDE_TOGGLE_DURING_QA) {
           this.flipToggle.style.display = 'block';
-        } else {
-          this.flipToggle.style.display = 'none';
+          return;
         }
+
+        if (this.currentWorkflowMode === 'self' && !qaConfig.HIDE_TOGGLE_AFTER_QA) {
+          this.flipToggle.style.display = 'block';
+          return;
+        }
+
+        this.flipToggle.style.display = 'none';
+        return;
       }
     }
 
@@ -420,17 +429,19 @@
         await this.showTypingIndicator('Done!');
         this.addMessage('Pablo', 'Done!', 'pablo');
 
-        // Transition from QA mode to self-adjustment mode with manual control
         this.currentWorkflowMode = 'self';
-        this.isAutoSelfMode = false; // Manual self mode with flip toggle
+
+        this.isAutoSelfMode = true;
         this.updateFlipToggleVisibility();
 
-        // Notify parent about workflow change to enable sliders
+        setTimeout(() => {
+          this.autoShowSliders();
+        }, CONFIG.CHAT.ANIMATION.AUTO_SLIDER_DELAY * 1000);
+
         if (this.onWorkflowChange) {
           this.onWorkflowChange('self');
         }
 
-        // Refresh slider displays to make them editable
         this.refreshSliders();
 
         return;
@@ -1236,6 +1247,17 @@
       const viewportHeight = window.innerHeight;
 
       this.flipToggle.textContent = customText || config.PORTRAIT_TEXT;
+
+      // Determine visibility based on QA mode configuration
+      let shouldShow = false;
+      const qaConfig = CONFIG.CHAT.QA_MODE;
+
+      if (this.currentWorkflowMode === 'qa' && !qaConfig.HIDE_TOGGLE_DURING_QA) {
+        shouldShow = true;
+      } else if (this.currentWorkflowMode === 'self' && !qaConfig.HIDE_TOGGLE_AFTER_QA) {
+        shouldShow = true;
+      }
+
       this.flipToggle.style.cssText = `
         position: fixed;
         right: ${viewportWidth * config.RIGHT_OFFSET_RATIO}px;
@@ -1247,7 +1269,7 @@
         z-index: 10;
         user-select: none;
         transition: color 0.2s ease;
-        display: ${(this.currentWorkflowMode === 'qa' || this.currentWorkflowMode === 'self') ? 'block' : 'none'};
+        display: ${shouldShow ? 'block' : 'none'};
         text-align: center;
       `;
     }
@@ -1259,6 +1281,19 @@
       if (!this.flipToggle) return;
 
       this.flipToggle.textContent = this.phoneShowingSliders ? 'flip the phone ←' : 'flip the phone →';
+
+      // Determine visibility based on QA mode configuration
+      let shouldShow = false;
+      const qaConfig = CONFIG.CHAT.QA_MODE;
+
+      if (this.currentWorkflowMode === 'qa' && !qaConfig.HIDE_TOGGLE_DURING_QA) {
+        shouldShow = true;
+      } else if (this.currentWorkflowMode === 'self' && !this.isAutoSelfMode) {
+        shouldShow = true;
+      } else if (this.currentWorkflowMode === 'self' && this.isAutoSelfMode && !qaConfig.HIDE_TOGGLE_AFTER_QA) {
+        shouldShow = true;
+      }
+
       this.flipToggle.style.cssText = `
         position: fixed;
         right: ${CONFIG.CHAT.IPHONE.POSITION.RIGHT_MARGIN + CONFIG.CHAT.IPHONE.WIDTH / 2}px;
@@ -1270,7 +1305,7 @@
         z-index: 10;
         user-select: none;
         transition: color 0.2s ease;
-        display: ${(this.currentWorkflowMode === 'qa' || this.currentWorkflowMode === 'self') ? 'block' : 'none'};
+        display: ${shouldShow ? 'block' : 'none'};
         text-align: center;
       `;
     }
@@ -1306,24 +1341,18 @@
      */
     autoShowSliders() {
       console.log('Auto-showing sliders in', this.currentOrientation, 'mode');
+      this.phoneShowingSliders = true;
 
       if (this.currentOrientation === 'portrait') {
-        // In portrait mode, show sliders in the text area
-        this.phoneShowingSliders = true;
         this.showPortraitSliders();
       } else {
-        // In landscape mode, show phone sliders
-        this.phoneShowingSliders = true;
         if (this.iphoneElement) {
           this.iphoneElement.style.visibility = 'hidden';
         }
         this.showPhoneSliders();
       }
 
-      // Explicitly don't show the flip toggle for auto mode
-      if (this.flipToggle) {
-        this.flipToggle.style.display = 'none';
-      }
+      this.updateFlipToggleVisibility();
     }
 
     /**

@@ -198,6 +198,12 @@
 
     // === CHAT INTERFACE ===
     CHAT: {
+      // QA Mode settings
+      QA_MODE: {
+        HIDE_TOGGLE_DURING_QA: true,
+        HIDE_TOGGLE_AFTER_QA: true,
+      },
+
       // File paths
       FILES: {
         INTRO_YAML: 'chat/intro.yaml',
