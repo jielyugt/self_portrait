@@ -824,12 +824,6 @@
         const sliderContainer = document.createElement('div');
         sliderContainer.style.cssText = 'display: flex; flex-direction: column; align-items: center;';
 
-        // Simple label
-        const label = document.createElement('div');
-        label.textContent = `${dimension.left} / ${dimension.right}`;
-        label.style.cssText = 'font-size: 11px; color: #666; margin-bottom: 8px; text-align: center;';
-        sliderContainer.appendChild(label);
-
         // Minimal slider
         const slider = document.createElement('input');
         slider.type = 'range';
@@ -876,7 +870,27 @@
         document.head.appendChild(styleSheet);
 
         slider.id = `phone-slider-${index}`;
-        sliderContainer.appendChild(slider);
+
+        // Create container for slider with side labels
+        const sliderWithLabels = document.createElement('div');
+        sliderWithLabels.style.cssText = 'display: flex; align-items: center; justify-content: center; width: 100%; gap: 8px;';
+
+        // Left emoji label
+        const leftLabel = document.createElement('span');
+        leftLabel.textContent = dimension.left;
+        leftLabel.style.cssText = 'font-size: 24px; flex-shrink: 0;';
+
+        // Right emoji label
+        const rightLabel = document.createElement('span');
+        rightLabel.textContent = dimension.right;
+        rightLabel.style.cssText = 'font-size: 24px; flex-shrink: 0;';
+
+        // Assemble slider with labels
+        sliderWithLabels.appendChild(leftLabel);
+        sliderWithLabels.appendChild(slider);
+        sliderWithLabels.appendChild(rightLabel);
+
+        sliderContainer.appendChild(sliderWithLabels);
 
         // Add event listener (only if not read-only)
         if (!isReadOnly) {
@@ -958,13 +972,7 @@
       // Create sliders for each MBTI dimension (scaled appropriately for portrait mode)
       CONFIG.MBTI.DIMENSIONS.forEach((dimension, index) => {
         const sliderContainer = document.createElement('div');
-        sliderContainer.style.cssText = 'display: flex; flex-direction: column; align-items: center;';
-
-        // Label - smaller and more compact
-        const label = document.createElement('div');
-        label.textContent = `${dimension.left} / ${dimension.right}`;
-        label.style.cssText = 'font-size: 12px; color: #666; margin-bottom: 8px; text-align: center; font-weight: 500;';
-        sliderContainer.appendChild(label);
+        sliderContainer.style.cssText = 'display: flex; flex-direction: column; align-items: center; margin-bottom: 15px;';
 
         // Slider
         const slider = document.createElement('input');
@@ -1012,7 +1020,27 @@
         document.head.appendChild(styleSheet);
 
         slider.id = `portrait-slider-${index}`;
-        sliderContainer.appendChild(slider);
+
+        // Create container for slider with side labels
+        const sliderWithLabels = document.createElement('div');
+        sliderWithLabels.style.cssText = 'display: flex; align-items: center; justify-content: center; width: 100%; gap: 10px;';
+
+        // Left emoji label
+        const leftLabel = document.createElement('span');
+        leftLabel.textContent = dimension.left;
+        leftLabel.style.cssText = 'font-size: 16px; flex-shrink: 0;';
+
+        // Right emoji label
+        const rightLabel = document.createElement('span');
+        rightLabel.textContent = dimension.right;
+        rightLabel.style.cssText = 'font-size: 16px; flex-shrink: 0;';
+
+        // Assemble slider with labels
+        sliderWithLabels.appendChild(leftLabel);
+        sliderWithLabels.appendChild(slider);
+        sliderWithLabels.appendChild(rightLabel);
+
+        sliderContainer.appendChild(sliderWithLabels);
 
         // Add event listener (only if not read-only)
         if (!isReadOnly) {

@@ -166,10 +166,10 @@
 
       // MBTI dimension labels
       DIMENSIONS: [
-        { name: 'E/I', left: 'Extraversion', right: 'Introversion' },
-        { name: 'S/N', left: 'Sensing', right: 'Intuition' },
-        { name: 'T/F', left: 'Thinking', right: 'Feeling' },
-        { name: 'J/P', left: 'Judging', right: 'Perceiving' }
+        { name: 'E/I', left: '🕺', right: '🧘' },
+        { name: 'S/N', left: '🔍', right: '🔮' },
+        { name: 'T/F', left: '🧠', right: '❤️' },
+        { name: 'J/P', left: '📅', right: '🎲' }
       ],
 
       FEATURE_WEIGHTS: {
