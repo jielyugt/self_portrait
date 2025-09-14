@@ -19,6 +19,9 @@
       this.orientation = 'landscape'; // 'portrait', 'landscape'
       this.portraitSize = CONFIG.CANVAS.SIZE_RATIO;
 
+      // User interaction tracking
+      this.hasUserInteracted = false; // Track if user has started interacting
+
       // Data
       this.faceSets = [];
       this.isDataLoaded = false;
@@ -73,16 +76,37 @@
     /**
      * Update MBTI values and calculate face parameters
      * @param {Array} newValues - New MBTI values
+     * @param {boolean} fromUserInteraction - Whether this update is from user interaction
      */
-    updateMBTI(newValues) {
+    updateMBTI(newValues, fromUserInteraction = false) {
       this.mbti = [...newValues];
       this.faceParams = this.calculateFaceParameters();
+
+      // Mark user interaction and transition away from initial face
+      if (fromUserInteraction && !this.hasUserInteracted) {
+        this.markUserInteraction();
+      }
+
       // Invalidate cache so fresh shapes are generated for new params
       this.lastShapeIndices = null;
       this.emit('mbti-changed', {
         mbti: this.mbti,
-        faceParams: this.faceParams
+        faceParams: this.faceParams,
+        fromUserInteraction
       });
+    }
+
+    /**
+     * Mark that user has started interacting with the app
+     */
+    markUserInteraction() {
+      if (!this.hasUserInteracted) {
+        this.hasUserInteracted = true;
+        console.log('User interaction detected - transitioning from face_1 to dynamic shapes');
+        this.emit('user-interaction-started', {
+          hasUserInteracted: this.hasUserInteracted
+        });
+      }
     }
 
     /**
@@ -152,6 +176,17 @@
     generateCurrentFaceShapes() {
       if (!this.isDataLoaded) return null;
 
+      // Always use face_1 (index 0) until user interacts
+      if (!this.hasUserInteracted && this.faceSets.length > 0) {
+        const initialFace = this.faceSets[0]; // face_1.json
+        return {
+          head: initialFace.head || [],
+          left_eye: initialFace.left_eye || [],
+          right_eye: initialFace.right_eye || [],
+          mouth: initialFace.mouth || []
+        };
+      }
+
       const faceCount = this.faceSets.length;
 
       // Create cache key from current shape indices
@@ -163,7 +198,7 @@
         return this.shapeCache.get(cacheKey);
       }
 
-      // Generate new shapes
+      // Generate new shapes based on current parameters
       const shapes = {
         head: this.getFeatureFromScore(this.faceParams.head || 0, 'head', faceCount),
         left_eye: this.getFeatureFromScore(this.faceParams.eye || 0, 'left_eye', faceCount),

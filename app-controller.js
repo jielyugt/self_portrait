@@ -93,6 +93,15 @@
           this.chatUI.handleOrientationChange();
         }
       });
+
+      this.appState.on('user-interaction-started', (data) => {
+        console.log('User interaction started - beginning transition from face_1 to dynamic shapes');
+        // Force immediate shape update to trigger morphing from face_1 to current calculated shapes
+        const newShapes = this.appState.generateCurrentFaceShapes();
+        if (newShapes) {
+          this.startShapeMorphing(newShapes, this.appState.faceParams);
+        }
+      });
     }
 
     /**
@@ -188,15 +197,15 @@
       // start reacting, then schedule the smoothing animation which uses
       // CONFIG.ANIMATION.MORPH.DURATION_SEC for duration only.
       if (this.appState.mode === 'qa') {
-        // Apply MBTI immediately for instant feedback
-        this.appState.updateMBTI(normalizedScores);
+        // Apply MBTI immediately for instant feedback - mark as user interaction
+        this.appState.updateMBTI(normalizedScores, true);
 
         // Then start morphing-to (this will interpolate MBTI over DURATION_SEC)
         // but we also schedule startShapeMorphing after CONFIG.ANIMATION.MORPH.START_DELAY_SEC
         this.startMorphingTo(normalizedScores);
       } else {
-        // Update immediately in other modes
-        this.appState.updateMBTI(normalizedScores);
+        // Update immediately in other modes - mark as user interaction
+        this.appState.updateMBTI(normalizedScores, true);
       }
     }
 
@@ -211,7 +220,8 @@
         this.mbtiAnimationProgress = null;
       }
 
-      this.appState.updateMBTI(mbtiValues);
+      // Mark as user interaction when sliders are used
+      this.appState.updateMBTI(mbtiValues, true);
     }
 
     /**
@@ -253,7 +263,8 @@
             const target = targetValues[i];
             return start + (target - start) * progress;
           });
-          this.appState.updateMBTI(interpolatedValues);
+          // Don't mark as user interaction during animation - this is system-driven morphing
+          this.appState.updateMBTI(interpolatedValues, false);
         },
         complete: () => {
           this.mbtiAnimationProgress = null;
@@ -382,7 +393,8 @@
      */
     randomizeMBTI() {
       const randomValues = Array.from({ length: 4 }, () => (Math.random() - 0.5) * 2);
-      this.appState.updateMBTI(randomValues);
+      // Mark as user interaction when randomize button is used
+      this.appState.updateMBTI(randomValues, true);
     }
 
     /**
