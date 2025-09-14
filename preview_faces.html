@@ -315,11 +315,11 @@
         }
       }
 
-      // Auto-load "faces_v2" folder if it exists
-      const facesOption = folderSelect.querySelector('option[value="faces_v2"]');
+      // Auto-load "faces" folder
+      const facesOption = folderSelect.querySelector('option[value="faces"]');
       if (facesOption) {
-        folderSelect.value = 'faces_v2';
-        await loadFacesFromFolder('faces_v2');
+        folderSelect.value = 'faces';
+        await loadFacesFromFolder('faces');
       }
     }
 

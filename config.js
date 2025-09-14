@@ -9,7 +9,7 @@
     // === FACE DATA ===
     FACES: {
       // Change this to switch face folder easily
-      PATH: 'faces_v2',
+      PATH: 'faces',
       COUNT: 6,
       // Preserve original point counts by default (no pre-normalization)
       // Set to true only if you want to equalize point counts on load
