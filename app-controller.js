@@ -171,11 +171,21 @@
         this.updateUIDescription('Answer Pablo\'s questions to build your portrait');
         this.updateModeIndicator('Q&A - Answer Pablo\'s questions');
         this.appState.portraitSize = CONFIG.CANVAS.SIZE_RATIO;
+
+        // Set MBTI UI to read-only during QA mode
+        if (this.mbtiUI) {
+          this.mbtiUI.setReadOnly(true);
+        }
       } else if (workflow === 'self') {
         this.appState.updateMode('self');
         this.updateUIDescription('Use the sliders on the phone to adjust your portrait');
         this.updateModeIndicator('Self-adjustment - Use phone sliders');
         this.appState.portraitSize = CONFIG.CANVAS.SIZE_RATIO;
+
+        // Enable MBTI UI sliders for self-adjustment mode
+        if (this.mbtiUI) {
+          this.mbtiUI.setReadOnly(false);
+        }
       }
     }
 

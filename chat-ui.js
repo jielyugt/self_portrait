@@ -412,6 +412,19 @@
         // Finished all questions
         await this.showTypingIndicator('Done!');
         this.addMessage('Pablo', 'Done!', 'pablo');
+
+        // Transition from QA mode to self-adjustment mode
+        this.currentWorkflowMode = 'self';
+        this.updateFlipToggleVisibility();
+
+        // Notify parent about workflow change to enable sliders
+        if (this.onWorkflowChange) {
+          this.onWorkflowChange('self');
+        }
+
+        // Refresh slider displays to make them editable
+        this.refreshSliders();
+
         return;
       }
 
@@ -1263,6 +1276,21 @@
       setTimeout(() => {
         this.portraitTextArea.scrollTop = this.portraitTextArea.scrollHeight;
       }, 50);
+    }
+
+    /**
+     * Refresh sliders to update their read-only state based on current workflow mode
+     */
+    refreshSliders() {
+      // If phone sliders are currently showing, recreate them with new state
+      if (this.phoneShowingSliders) {
+        this.showPhoneSliders();
+      }
+
+      // If portrait text area has sliders, recreate them with new state
+      if (this.portraitTextArea && this.portraitTextArea.querySelector('.portrait-sliders-container')) {
+        this.showPortraitSliders();
+      }
     }
 
     /**
