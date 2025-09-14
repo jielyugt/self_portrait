@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Face Preview Tool</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.7.0/p5.min.js"></script>
+  <style>
+    html,
+    body {
+      margin: 0;
+      height: 100%;
+      background: #ffffff;
+      color: #000000;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+    }
+
+    :root {
+      --face-gap: 10px;
+      --canvas-top-position: 80px;
+      /* Distance from top of viewport */
+    }
+
+    .container {
+      display: flex;
+      gap: 20px;
+      height: 100vh;
+      padding: 20px;
+      box-sizing: border-box;
+    }
+
+    .left-panel {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      padding: 10px;
+      background: #ffffff;
+      min-height: 0;
+      box-sizing: border-box;
+      overflow: auto;
+    }
+
+    .right-panel {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      padding: 10px;
+      background: #ffffff;
+      box-sizing: border-box;
+      overflow: auto;
+      position: relative;
+    }
+
+    .folder-selector {
+      margin-bottom: var(--face-gap);
+    }
+
+    .folder-selector label {
+      font-size: 12px;
+      display: block;
+      margin-bottom: 4px;
+    }
+
+    .folder-selector select {
+      border: 1px solid #000;
+      background: #fff;
+      color: #000;
+      padding: 6px 8px;
+      cursor: pointer;
+      border-radius: 0;
+      font-size: 12px;
+      width: 100%;
+      box-sizing: border-box;
+    }
+
+    .faces-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: var(--face-gap);
+      margin-top: 20px;
+      width: 100%;
+      box-sizing: border-box;
+    }
+
+    .face-item {
+      text-align: center;
+      width: 100%;
+      box-sizing: border-box;
+    }
+
+    .face-item h4 {
+      display: none;
+      /* Hide the title since we'll draw it on the canvas */
+    }
+
+    .face-canvas {
+      border: 1px solid #000;
+      cursor: pointer;
+      width: 100%;
+      height: auto;
+      max-width: 100%;
+      box-sizing: border-box;
+    }
+
+    .canvas-container {
+      position: relative;
+      text-align: center;
+      margin-top: 20px;
+      width: 100%;
+      display: flex;
+      justify-content: center;
+    }
+
+    #bigCanvas {
+      width: 400px;
+      max-width: 100%;
+    }
+
+    .big-canvas {
+      border: 1px solid #000;
+    }
+
+    .controls-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 6px;
+      margin-bottom: var(--face-gap);
+      width: 400px;
+      max-width: 100%;
+      margin-left: auto;
+      margin-right: auto;
+      box-sizing: border-box;
+    }
+
+    .random-button-container {
+      display: flex;
+      justify-content: center;
+      margin-top: 20px;
+      width: 100%;
+    }
+
+    .random-button {
+      width: 120px;
+    }
+
+    .control-group {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .control-group label {
+      font-size: 12px;
+      margin-bottom: 4px;
+    }
+
+    .control-group select {
+      border: 1px solid #000;
+      background: #fff;
+      color: #000;
+      padding: 6px 8px;
+      cursor: pointer;
+      border-radius: 0;
+      font-size: 12px;
+      width: 100%;
+    }
+
+    button {
+      border: 1px solid #000;
+      background: #fff;
+      color: #000;
+      padding: 6px 8px;
+      cursor: pointer;
+      border-radius: 0;
+      font-size: 12px;
+      width: 100%;
+    }
+
+    button:active {
+      transform: translateY(1px);
+    }
+
+    .loading {
+      text-align: center;
+      padding: 20px;
+      color: #666;
+      font-size: 12px;
+    }
+
+    .error {
+      color: #000;
+      background: #fff;
+      border: 1px solid #000;
+      padding: 6px 8px;
+      margin: 10px 0;
+      font-size: 12px;
+    }
+
+    canvas {
+      display: block;
+      background: #fff;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <div class="left-panel">
+      <div class="folder-selector">
+        <label for="folderSelect">Select Folder:</label>
+        <select id="folderSelect">
+          <option value="">Choose a folder...</option>
+        </select>
+      </div>
+
+      <div id="facesContainer">
+        <div class="loading">Select a folder to load faces</div>
+      </div>
+    </div>
+
+    <div class="right-panel">
+      <div class="controls-row">
+        <div class="control-group">
+          <label for="headSelect">Head</label>
+          <select id="headSelect">
+            <!-- Head options will be populated here -->
+          </select>
+        </div>
+
+        <div class="control-group">
+          <label for="eyesSelect">Eyes</label>
+          <select id="eyesSelect">
+            <!-- Eyes options will be populated here -->
+          </select>
+        </div>
+
+        <div class="control-group">
+          <label for="mouthSelect">Mouth</label>
+          <select id="mouthSelect">
+            <!-- Mouth options will be populated here -->
+          </select>
+        </div>
+      </div>
+
+      <div class="canvas-container">
+        <div id="bigCanvas">
+          <!-- P5.js canvas will be attached here -->
+        </div>
+      </div>
+
+      <div class="random-button-container">
+        <button class="random-button" onclick="randomizeFace()">🎲 Random</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Global variables
+    let facesData = [];
+    let currentFolder = '';
+    let selectedParts = {
+      head: 0,
+      eyes: 0,
+      mouth: 0
+    };
+    let bigCanvas;
+    let faceCanvases = [];
+
+    // P5.js sketches for small face previews
+    let faceSketchInstances = [];
+
+    // Initialize the application
+    window.addEventListener('DOMContentLoaded', async function () {
+      await loadAvailableFolders();
+      setupFolderSelector();
+      setupBigCanvas();
+    });
+
+    // Load available folders from the root directory
+    async function loadAvailableFolders() {
+      const folderSelect = document.getElementById('folderSelect');
+
+      // Dynamically scan for folders starting with 'faces'
+      let knownFolders = [];
+      knownFolders.push('faces');
+      let version = 2;
+      while (true) {
+        const folder = `faces_v${version}`;
+        try {
+          const response = await fetch(`${folder}/face_1.json`);
+          if (response.ok) {
+            knownFolders.push(folder);
+            version++;
+          } else {
+            break;
+          }
+        } catch (error) {
+          break;
+        }
+      }
+
+      for (const folder of knownFolders) {
+        try {
+          // Test if folder exists by trying to load face_1.json
+          const response = await fetch(`${folder}/face_1.json`);
+          if (response.ok) {
+            const option = document.createElement('option');
+            option.value = folder;
+            option.textContent = folder;
+            folderSelect.appendChild(option);
+          }
+        } catch (error) {
+          console.log(`Folder ${folder} not accessible`);
+        }
+      }
+
+      // Auto-load "faces_v2" folder if it exists
+      const facesOption = folderSelect.querySelector('option[value="faces_v2"]');
+      if (facesOption) {
+        folderSelect.value = 'faces_v2';
+        await loadFacesFromFolder('faces_v2');
+      }
+    }
+
+    // Setup folder selector event handler
+    function setupFolderSelector() {
+      const folderSelect = document.getElementById('folderSelect');
+      folderSelect.addEventListener('change', async function () {
+        const selectedFolder = this.value;
+        if (selectedFolder) {
+          currentFolder = selectedFolder;
+          await loadFacesFromFolder(selectedFolder);
+        }
+      });
+    }
+
+    // Load all faces from the selected folder
+    async function loadFacesFromFolder(folder) {
+      const container = document.getElementById('facesContainer');
+      container.innerHTML = '<div class="loading">Loading faces...</div>';
+      container.style.display = 'block';
+
+      try {
+        facesData = [];
+        let faceNumber = 1;
+
+        // Try to load faces until we can't find any more
+        while (true) {
+          try {
+            const response = await fetch(`${folder}/face_${faceNumber}.json`);
+            if (!response.ok) break;
+
+            const faceData = await response.json();
+            facesData.push({
+              id: faceNumber,
+              data: faceData
+            });
+            faceNumber++;
+          } catch (error) {
+            break;
+          }
+        }
+
+        if (facesData.length === 0) {
+          throw new Error('No faces found in this folder');
+        }
+
+        displayFaces();
+        setupMixerControls();
+        updateBigCanvas();
+
+      } catch (error) {
+        container.innerHTML = `<div class="error">Error loading faces: ${error.message}</div>`;
+        container.style.display = 'block';
+      }
+    }
+
+    // Display all faces in the left panel
+    function displayFaces() {
+      const container = document.getElementById('facesContainer');
+      container.innerHTML = '<div class="faces-grid" id="facesGrid"></div>';
+      container.style.display = 'block';
+
+      const grid = document.getElementById('facesGrid');
+
+      // Clear existing canvases
+      faceSketchInstances.forEach(instance => {
+        if (instance.remove) instance.remove();
+      });
+      faceSketchInstances = [];
+
+      facesData.forEach((face, index) => {
+        const faceItem = document.createElement('div');
+        faceItem.className = 'face-item';
+
+        const canvasContainer = document.createElement('div');
+        canvasContainer.id = `face-canvas-${index}`;
+
+        faceItem.appendChild(canvasContainer);
+        grid.appendChild(faceItem);
+
+        // Create P5.js sketch for this face
+        const sketch = createFaceSketch(face.data, null, null, face.id);
+        const sketchInstance = new p5(sketch, `face-canvas-${index}`);
+        faceSketchInstances.push(sketchInstance);
+      });
+    }    // Create a P5.js sketch for rendering a face
+    function createFaceSketch(faceData, width, height, faceId) {
+      return function (p) {
+        p.setup = function () {
+          // Get the container dimensions
+          const container = p.canvas.parentElement;
+          const containerWidth = container.clientWidth;
+          const containerHeight = containerWidth; // Make it square
+
+          const canvas = p.createCanvas(containerWidth, containerHeight);
+          canvas.class('face-canvas');
+          canvas.style('width', '100%');
+          canvas.style('height', 'auto');
+        };
+
+        p.draw = function () {
+          p.background(255);
+
+          const centerX = p.width / 2;
+          const centerY = p.height / 2;
+          const size = Math.min(p.width, p.height) * 0.8;
+
+          // Draw face components
+          drawFaceComponent(p, faceData.face, centerX, centerY, size, { weight: 2 });
+          drawFaceComponent(p, faceData.left_eye, centerX, centerY, size, { weight: 2 });
+          drawFaceComponent(p, faceData.right_eye, centerX, centerY, size, { weight: 2 });
+          drawFaceComponent(p, faceData.mouth, centerX, centerY, size, { weight: 2 });
+
+          // Draw face number in lower right corner
+          p.fill(0);
+          p.noStroke();
+          p.textAlign(p.RIGHT, p.BOTTOM);
+          p.textSize(12);
+          p.text(`Face ${faceId}`, p.width - 4, p.height - 4);
+
+          p.noLoop(); // Static drawing
+        };
+
+        p.windowResized = function () {
+          // Resize canvas when window resizes
+          const container = p.canvas.parentElement;
+          const containerWidth = container.clientWidth;
+          const containerHeight = containerWidth;
+          p.resizeCanvas(containerWidth, containerHeight);
+        };
+      };
+    }
+
+    // Setup the big canvas for face mixing
+    function setupBigCanvas() {
+      const bigCanvasSketch = function (p) {
+        p.setup = function () {
+          const canvas = p.createCanvas(400, 400);
+          canvas.class('big-canvas');
+          canvas.parent('bigCanvas');
+        };
+
+        p.draw = function () {
+          p.background(255);
+
+          if (facesData.length > 0) {
+            const centerX = 200;
+            const centerY = 200;
+            const size = 300;
+
+            // Get selected parts
+            const headData = facesData[selectedParts.head]?.data.face || [];
+            const leftEyeData = facesData[selectedParts.eyes]?.data.left_eye || [];
+            const rightEyeData = facesData[selectedParts.eyes]?.data.right_eye || [];
+            const mouthData = facesData[selectedParts.mouth]?.data.mouth || [];
+
+            // Draw mixed face
+            drawFaceComponent(p, headData, centerX, centerY, size, { weight: 3 });
+            drawFaceComponent(p, leftEyeData, centerX, centerY, size, { weight: 3 });
+            drawFaceComponent(p, rightEyeData, centerX, centerY, size, { weight: 3 });
+            drawFaceComponent(p, mouthData, centerX, centerY, size, { weight: 3 });
+          }
+
+          p.noLoop(); // Static drawing
+        };
+      };
+
+      bigCanvas = new p5(bigCanvasSketch);
+    }
+
+    // Draw a face component (polyline)
+    function drawFaceComponent(p, points, centerX, centerY, size, opts = {}) {
+      if (!points || points.length === 0) return;
+
+      const { weight = 2, close = false } = opts;
+
+      p.push();
+      p.translate(centerX, centerY);
+      p.noFill();
+      p.stroke(20);
+      p.strokeWeight(weight);
+      p.beginShape();
+
+      for (const point of points) {
+        const x = (point[0] - 0.5) * size;
+        const y = (point[1] - 0.5) * size;
+        p.vertex(x, y);
+      }
+
+      if (close) {
+        p.endShape(p.CLOSE);
+      } else {
+        p.endShape();
+      }
+      p.pop();
+    }
+
+    // Setup mixer controls
+    function setupMixerControls() {
+      // Setup head selector
+      setupPartDropdown('headSelect', 'head');
+
+      // Setup eyes selector
+      setupPartDropdown('eyesSelect', 'eyes');
+
+      // Setup mouth selector
+      setupPartDropdown('mouthSelect', 'mouth');
+    }
+
+    // Setup a part dropdown (head, eyes, mouth)
+    function setupPartDropdown(selectId, partType) {
+      const select = document.getElementById(selectId);
+      select.innerHTML = '';
+
+      facesData.forEach((face, index) => {
+        const option = document.createElement('option');
+        option.value = index;
+        option.textContent = `Face ${face.id}`;
+        select.appendChild(option);
+      });
+
+      // Set initial selection
+      select.value = selectedParts[partType];
+
+      // Add event listener
+      select.addEventListener('change', function () {
+        selectPart(partType, parseInt(this.value));
+      });
+    }
+
+    // Select a part for mixing
+    function selectPart(partType, index) {
+      selectedParts[partType] = index;
+
+      // Update dropdown selection
+      const selectId = partType === 'head' ? 'headSelect' :
+        partType === 'eyes' ? 'eyesSelect' : 'mouthSelect';
+      const select = document.getElementById(selectId);
+      if (select) {
+        select.value = index;
+      }
+
+      updateBigCanvas();
+    }
+
+    // Update the big canvas with current selections
+    function updateBigCanvas() {
+      if (bigCanvas) {
+        bigCanvas.loop();
+        bigCanvas.redraw();
+        bigCanvas.noLoop();
+      }
+    }
+
+    // Randomize all face parts
+    function randomizeFace() {
+      if (facesData.length === 0) return;
+
+      const randomHead = Math.floor(Math.random() * facesData.length);
+      const randomEyes = Math.floor(Math.random() * facesData.length);
+      const randomMouth = Math.floor(Math.random() * facesData.length);
+
+      selectPart('head', randomHead);
+      selectPart('eyes', randomEyes);
+      selectPart('mouth', randomMouth);
+    }
+  </script>
+</body>
+
+</html>
