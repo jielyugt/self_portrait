@@ -315,6 +315,7 @@
         CHOICE_HOVER_DURATION: 0.2,  // Choice button hover animation duration
         CHOICE_INITIAL_DELAY: 0.3,    // Delay before first choice button appears (seconds)
         CHOICE_STAGGER_DELAY: 0.3,   // Delay between each choice button appearing (seconds)
+        AUTO_SLIDER_DELAY: 3.0,      // Delay before automatically showing sliders after self-portrait message (seconds)
       },
 
       // Chat area dimensions (within iPhone screen)

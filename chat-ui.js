@@ -36,6 +36,7 @@
       // Phone interface state
       this.phoneShowingSliders = false;
       this.currentWorkflowMode = 'chat'; // 'chat', 'qa', 'self'
+      this.isAutoSelfMode = false; // Track if we're in automatic self-portrait mode
 
       // UI elements
       this.iphoneElement = null;
@@ -274,7 +275,8 @@
      */
     updateFlipToggleVisibility() {
       if (this.flipToggle) {
-        if (this.currentWorkflowMode === 'qa' || this.currentWorkflowMode === 'self') {
+        // Show flip toggle only for QA mode or regular self mode, not for auto self mode
+        if ((this.currentWorkflowMode === 'qa' || this.currentWorkflowMode === 'self') && !this.isAutoSelfMode) {
           this.flipToggle.style.display = 'block';
         } else {
           this.flipToggle.style.display = 'none';
@@ -383,15 +385,20 @@
           this.onWorkflowChange('qa');
         }
       } else if (node.next === 'BEGIN_SELF') {
-        // Switch to self-adjustment mode
-        // Update workflow mode and show flip toggle
+        // Switch to self-adjustment mode with automatic slider display
         this.currentWorkflowMode = 'self';
-        this.updateFlipToggleVisibility();
+        this.isAutoSelfMode = true;
+        this.updateFlipToggleVisibility(); // This will hide the flip toggle
 
         // Notify parent about workflow change
         if (this.onWorkflowChange) {
           this.onWorkflowChange('self');
         }
+
+        // Automatically show sliders after configured delay
+        setTimeout(() => {
+          this.autoShowSliders();
+        }, CONFIG.CHAT.ANIMATION.AUTO_SLIDER_DELAY * 1000);
       } else if (node.choices && node.choices.length > 0) {
         // Show choices
         this.showChoices(node.choices);
@@ -413,8 +420,9 @@
         await this.showTypingIndicator('Done!');
         this.addMessage('Pablo', 'Done!', 'pablo');
 
-        // Transition from QA mode to self-adjustment mode
+        // Transition from QA mode to self-adjustment mode with manual control
         this.currentWorkflowMode = 'self';
+        this.isAutoSelfMode = false; // Manual self mode with flip toggle
         this.updateFlipToggleVisibility();
 
         // Notify parent about workflow change to enable sliders
@@ -1294,6 +1302,31 @@
     }
 
     /**
+     * Automatically show sliders based on current orientation without showing flip toggle
+     */
+    autoShowSliders() {
+      console.log('Auto-showing sliders in', this.currentOrientation, 'mode');
+
+      if (this.currentOrientation === 'portrait') {
+        // In portrait mode, show sliders in the text area
+        this.phoneShowingSliders = true;
+        this.showPortraitSliders();
+      } else {
+        // In landscape mode, show phone sliders
+        this.phoneShowingSliders = true;
+        if (this.iphoneElement) {
+          this.iphoneElement.style.visibility = 'hidden';
+        }
+        this.showPhoneSliders();
+      }
+
+      // Explicitly don't show the flip toggle for auto mode
+      if (this.flipToggle) {
+        this.flipToggle.style.display = 'none';
+      }
+    }
+
+    /**
      * Reset the chat interface
      */
     reset() {
@@ -1304,6 +1337,7 @@
       this.mode = 'intro';
       this.phoneShowingSliders = false;
       this.currentWorkflowMode = 'chat';
+      this.isAutoSelfMode = false;
 
       if (this.chatArea) {
         this.chatArea.innerHTML = '';
