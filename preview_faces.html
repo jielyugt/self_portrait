@@ -281,8 +281,24 @@
     async function loadAvailableFolders() {
       const folderSelect = document.getElementById('folderSelect');
 
-      // Predefined folders - in a real scenario you might scan the directory
-      const knownFolders = ['faces', 'faces_v2'];
+      // Dynamically scan for folders starting with 'faces'
+      let knownFolders = [];
+      knownFolders.push('faces');
+      let version = 2;
+      while (true) {
+        const folder = `faces_v${version}`;
+        try {
+          const response = await fetch(`${folder}/face_1.json`);
+          if (response.ok) {
+            knownFolders.push(folder);
+            version++;
+          } else {
+            break;
+          }
+        } catch (error) {
+          break;
+        }
+      }
 
       for (const folder of knownFolders) {
         try {
@@ -299,11 +315,11 @@
         }
       }
 
-      // Auto-load "faces" folder if it exists
-      const facesOption = folderSelect.querySelector('option[value="faces"]');
+      // Auto-load "faces_v2" folder if it exists
+      const facesOption = folderSelect.querySelector('option[value="faces_v2"]');
       if (facesOption) {
-        folderSelect.value = 'faces';
-        await loadFacesFromFolder('faces');
+        folderSelect.value = 'faces_v2';
+        await loadFacesFromFolder('faces_v2');
       }
     }
 
