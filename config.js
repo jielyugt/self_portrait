@@ -51,7 +51,7 @@
           SCALE_X: 1.0,
           SCALE_Y: 1.0,
           OFFSET_X: 0.0,
-          OFFSET_Y: 0.0
+          OFFSET_Y: -0.02
         },
         LEFT_EYE: {
           SCALE_X: 1.0,
