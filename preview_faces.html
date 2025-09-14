@@ -259,6 +259,8 @@
     // Global variables
     let facesData = [];
     let currentFolder = '';
+    // Default folder to load on start
+    const DEFAULT_FOLDER = 'faces_v2';
     let selectedParts = {
       head: 0,
       eyes: 0,
@@ -315,11 +317,11 @@
         }
       }
 
-      // Auto-load "faces" folder
-      const facesOption = folderSelect.querySelector('option[value="faces"]');
-      if (facesOption) {
-        folderSelect.value = 'faces';
-        await loadFacesFromFolder('faces');
+      // Auto-load default folder
+      const defaultOption = folderSelect.querySelector(`option[value="${DEFAULT_FOLDER}"]`);
+      if (defaultOption) {
+        folderSelect.value = DEFAULT_FOLDER;
+        await loadFacesFromFolder(DEFAULT_FOLDER);
       }
     }
 
