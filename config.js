@@ -47,33 +47,29 @@
 
       // Component scaling and positioning
       SCALING: {
-        // Head outline scaling and positioning
         HEAD: {
-          SCALE_X: 1.0,     // Scale factor for width
-          SCALE_Y: 1.0,     // Scale factor for height
-          OFFSET_X: 0.0,    // X position offset
-          OFFSET_Y: -0.07     // Y position offset
+          SCALE_X: 1.0,
+          SCALE_Y: 1.0,
+          OFFSET_X: 0.0,
+          OFFSET_Y: 0.0
         },
-        // Left eye scaling and positioning
         LEFT_EYE: {
-          SCALE_X: 0.9,     // Scale factor for width
-          SCALE_Y: 0.825,   // Scale factor for height
-          OFFSET_X: 0.05,   // X position offset
-          OFFSET_Y: 0.0375  // Y position offset
+          SCALE_X: 1.0,
+          SCALE_Y: 1.0,
+          OFFSET_X: 0.0,
+          OFFSET_Y: 0.0
         },
-        // Right eye scaling and positioning (same as left eye)
         RIGHT_EYE: {
-          SCALE_X: 0.9,
-          SCALE_Y: 0.825,
-          OFFSET_X: 0.05,
-          OFFSET_Y: 0.0375
+          SCALE_X: 1.0,
+          SCALE_Y: 1.0,
+          OFFSET_X: 0.0,
+          OFFSET_Y: 0.0
         },
-        // Mouth scaling and positioning
         MOUTH: {
-          SCALE_X: 1.05,    // Scale factor for width
-          SCALE_Y: 0.525,   // Scale factor for height
-          OFFSET_X: -0.025, // X position offset
-          OFFSET_Y: 0.3  // Y position offset
+          SCALE_X: 1.0,
+          SCALE_Y: 1.0,
+          OFFSET_X: 0.0,
+          OFFSET_Y: 0.0
         }
       }
     },
