@@ -21,11 +21,11 @@
       this.chatUI = null;
       this.mbtiUI = null;
 
-  // Animation state
-  this.mbtiAnimationProgress = null;
-  this.morphTimeout = null;
-  // Timeout used to schedule the actual start of the shape morph (start delay)
-  this.morphStartTimeout = null;
+      // Animation state
+      this.mbtiAnimationProgress = null;
+      this.morphTimeout = null;
+      // Timeout used to schedule the actual start of the shape morph (start delay)
+      this.morphStartTimeout = null;
       this.currentShapeIndices = null; // Tracks last rendered discrete indices
 
       // Bind methods
