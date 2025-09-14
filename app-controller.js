@@ -21,9 +21,11 @@
       this.chatUI = null;
       this.mbtiUI = null;
 
-      // Animation state
-      this.mbtiAnimationProgress = null;
-      this.morphTimeout = null;
+  // Animation state
+  this.mbtiAnimationProgress = null;
+  this.morphTimeout = null;
+  // Timeout used to schedule the actual start of the shape morph (start delay)
+  this.morphStartTimeout = null;
       this.currentShapeIndices = null; // Tracks last rendered discrete indices
 
       // Bind methods
@@ -181,8 +183,16 @@
         return Math.max(-1, Math.min(1, scaled));
       });
 
-      // Start morphing animation in QA mode
+      // In QA mode we want immediate visible response but still optionally
+      // run a smoothing animation. Update MBTI immediately so shapes can
+      // start reacting, then schedule the smoothing animation which uses
+      // CONFIG.ANIMATION.MORPH.DURATION_SEC for duration only.
       if (this.appState.mode === 'qa') {
+        // Apply MBTI immediately for instant feedback
+        this.appState.updateMBTI(normalizedScores);
+
+        // Then start morphing-to (this will interpolate MBTI over DURATION_SEC)
+        // but we also schedule startShapeMorphing after CONFIG.ANIMATION.MORPH.START_DELAY_SEC
         this.startMorphingTo(normalizedScores);
       } else {
         // Update immediately in other modes
@@ -250,6 +260,44 @@
           console.log('MBTI morph complete at values:', this.appState.mbti);
         }
       });
+
+      // Schedule the actual shape morph start after START_DELAY_SEC (separate from DURATION_SEC)
+      // Clear any existing scheduled morph start
+      if (this.morphStartTimeout) {
+        clearTimeout(this.morphStartTimeout);
+        this.morphStartTimeout = null;
+      }
+
+      const startDelay = (CONFIG.ANIMATION.MORPH.START_DELAY_SEC || 0) * 1000;
+      if (startDelay > 0) {
+        this.morphStartTimeout = setTimeout(() => {
+          // Cancel any pending debounced morph so we start deterministically
+          if (this.morphTimeout) {
+            clearTimeout(this.morphTimeout);
+            this.morphTimeout = null;
+          }
+
+          // Compute the new shapes from the (already-updated) appState faceParams
+          const newShapes = this.appState.generateCurrentFaceShapes();
+          const newParams = this.appState.faceParams;
+          if (newShapes) {
+            this.startShapeMorphing(newShapes, newParams);
+          }
+          this.morphStartTimeout = null;
+        }, startDelay);
+      } else {
+        // If no start delay configured, start immediately
+        // Cancel any pending debounced morph to avoid delay
+        if (this.morphTimeout) {
+          clearTimeout(this.morphTimeout);
+          this.morphTimeout = null;
+        }
+        const newShapes = this.appState.generateCurrentFaceShapes();
+        const newParams = this.appState.faceParams;
+        if (newShapes) {
+          this.startShapeMorphing(newShapes, newParams);
+        }
+      }
 
       console.log('Starting MBTI morph from', startValues, 'to', targetValues);
     }

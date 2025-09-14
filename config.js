@@ -92,7 +92,8 @@
 
       // Morphing animation settings
       MORPH: {
-        DURATION_SEC: 3,      // Reduced for snappier feel
+        DURATION_SEC: 3,      // How long the morph animation takes (seconds)
+        START_DELAY_SEC: 0.5,
         SAMPLE_POINTS: 32,    // Optimized point count for performance
         // When PRE_NORMALIZE_POINTS is false, we'll resample only during
         // the in-between frames of a morph (not at rest) so originals stay intact
