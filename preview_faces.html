@@ -133,15 +133,44 @@
       box-sizing: border-box;
     }
 
-    .random-button-container {
+    .controls-bottom-row {
       display: flex;
       justify-content: center;
+      align-items: center;
       margin-top: 20px;
-      width: 100%;
+      width: 400px;
+      max-width: 100%;
+      margin-left: auto;
+      margin-right: auto;
+      box-sizing: border-box;
     }
 
     .random-button {
+      border: 1px solid #000;
+      background: #fff;
+      color: #000;
+      padding: 6px 8px;
+      cursor: pointer;
+      border-radius: 0;
+      font-size: 12px;
       width: 120px;
+    }
+
+    .transform-toggle-container {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      background: rgba(255, 255, 255, 0.9);
+      padding: 8px 12px;
+      z-index: 1000;
+    }
+
+    .transform-toggle-container input[type="checkbox"] {
+      margin: 0;
     }
 
     .control-group {
@@ -249,10 +278,16 @@
         </div>
       </div>
 
-      <div class="random-button-container">
+      <div class="controls-bottom-row">
         <button class="random-button" onclick="randomizeFace()">🎲 Random</button>
       </div>
     </div>
+  </div>
+
+  <!-- Fixed position toggle in bottom right corner -->
+  <div class="transform-toggle-container">
+    <input type="checkbox" id="applyTransforms" onchange="toggleTransforms()">
+    <label for="applyTransforms">Apply Config Transforms</label>
   </div>
 
   <script>
@@ -272,12 +307,68 @@
     // P5.js sketches for small face previews
     let faceSketchInstances = [];
 
+    // Transform configuration
+    let applyTransforms = false;
+    let configTransforms = null;
+
     // Initialize the application
     window.addEventListener('DOMContentLoaded', async function () {
       await loadAvailableFolders();
       setupFolderSelector();
       setupBigCanvas();
+      await loadConfigTransforms();
     });
+
+    // Load transformation config from config.js
+    async function loadConfigTransforms() {
+      try {
+        // Load config.js and extract the transform data
+        const response = await fetch('config.js');
+        const configText = await response.text();
+
+        // Execute the config script to get the config object
+        const scriptElement = document.createElement('script');
+        scriptElement.textContent = configText;
+        document.head.appendChild(scriptElement);
+
+        // Extract the transform configuration
+        if (window.FaceApp && window.FaceApp.CONFIG && window.FaceApp.CONFIG.VISUAL && window.FaceApp.CONFIG.VISUAL.SCALING) {
+          configTransforms = window.FaceApp.CONFIG.VISUAL.SCALING;
+          console.log('Loaded config transforms:', configTransforms);
+        } else {
+          console.warn('Could not load config transforms from config.js');
+        }
+
+        // Clean up
+        document.head.removeChild(scriptElement);
+      } catch (error) {
+        console.error('Error loading config transforms:', error);
+      }
+    }
+
+    // Toggle transform application
+    function toggleTransforms() {
+      const checkbox = document.getElementById('applyTransforms');
+      applyTransforms = checkbox.checked;
+      console.log('Transform application:', applyTransforms ? 'enabled' : 'disabled');
+
+      // Redraw the big canvas with or without transforms
+      updateBigCanvas();
+
+      // Redraw all small face previews
+      refreshAllFacePreviews();
+    }
+
+    // Refresh all small face preview canvases
+    function refreshAllFacePreviews() {
+      faceSketchInstances.forEach(instance => {
+        if (instance.loop && instance.redraw) {
+          instance.loop();
+          instance.redraw();
+          instance.noLoop();
+        }
+      });
+    }
 
     // Load available folders from the root directory
     async function loadAvailableFolders() {
@@ -430,10 +521,10 @@
           const size = Math.min(p.width, p.height) * 0.8;
 
           // Draw face components
-          drawFaceComponent(p, faceData.face, centerX, centerY, size, { weight: 2 });
-          drawFaceComponent(p, faceData.left_eye, centerX, centerY, size, { weight: 2 });
-          drawFaceComponent(p, faceData.right_eye, centerX, centerY, size, { weight: 2 });
-          drawFaceComponent(p, faceData.mouth, centerX, centerY, size, { weight: 2 });
+          drawFaceComponent(p, faceData.face, centerX, centerY, size, { weight: 2, componentType: 'HEAD' });
+          drawFaceComponent(p, faceData.left_eye, centerX, centerY, size, { weight: 2, componentType: 'LEFT_EYE' });
+          drawFaceComponent(p, faceData.right_eye, centerX, centerY, size, { weight: 2, componentType: 'RIGHT_EYE' });
+          drawFaceComponent(p, faceData.mouth, centerX, centerY, size, { weight: 2, componentType: 'MOUTH' });
 
           // Draw face number in lower right corner
           p.fill(0);
@@ -479,10 +570,10 @@
             const mouthData = facesData[selectedParts.mouth]?.data.mouth || [];
 
             // Draw mixed face
-            drawFaceComponent(p, headData, centerX, centerY, size, { weight: 3 });
-            drawFaceComponent(p, leftEyeData, centerX, centerY, size, { weight: 3 });
-            drawFaceComponent(p, rightEyeData, centerX, centerY, size, { weight: 3 });
-            drawFaceComponent(p, mouthData, centerX, centerY, size, { weight: 3 });
+            drawFaceComponent(p, headData, centerX, centerY, size, { weight: 3, componentType: 'HEAD' });
+            drawFaceComponent(p, leftEyeData, centerX, centerY, size, { weight: 3, componentType: 'LEFT_EYE' });
+            drawFaceComponent(p, rightEyeData, centerX, centerY, size, { weight: 3, componentType: 'RIGHT_EYE' });
+            drawFaceComponent(p, mouthData, centerX, centerY, size, { weight: 3, componentType: 'MOUTH' });
           }
 
           p.noLoop(); // Static drawing
@@ -496,10 +587,25 @@
     function drawFaceComponent(p, points, centerX, centerY, size, opts = {}) {
       if (!points || points.length === 0) return;
 
-      const { weight = 2, close = false } = opts;
+      const { weight = 2, close = false, componentType = null } = opts;
 
       p.push();
       p.translate(centerX, centerY);
+
+      // Apply transforms if enabled and config is loaded
+      if (applyTransforms && configTransforms && componentType) {
+        const transform = configTransforms[componentType];
+        if (transform) {
+          // Apply scaling
+          p.scale(transform.SCALE_X, transform.SCALE_Y);
+
+          // Apply offset (convert to size-relative coordinates)
+          const offsetX = transform.OFFSET_X * size;
+          const offsetY = transform.OFFSET_Y * size;
+          p.translate(offsetX, offsetY);
+        }
+      }
+
       p.noFill();
       p.stroke(20);
       p.strokeWeight(weight);
