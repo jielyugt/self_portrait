@@ -18,8 +18,8 @@
         "j_p": -0.5
       },
       {
-        "e_i": -0.3,
-        "j_p": 0.4
+        "e_i": -0.1,
+        "j_p": 0.2
       }
     ]
   },
@@ -74,7 +74,7 @@
     "answers": [
       "Pet every dog",
       "Watch from bench, deep in thought",
-      "Chat with people more than dogs"
+      "I don't go to dog parks"
     ],
     "scores": [
       {
@@ -85,11 +85,7 @@
         "e_i": 0.4,
         "s_n": 0.1
       },
-      {
-        "e_i": -0.7,
-        "t_f": -0.3,
-        "j_p": 0.3
-      }
+      {}
     ]
   },
   {
@@ -98,7 +94,7 @@
     "answers": [
       "Claude Monet",
       "Pablo Picasso",
-      "Salvador Dalí"
+      "Hard to pick, I like a mix"
     ],
     "scores": [
       {
@@ -109,10 +105,7 @@
         "s_n": 0.4,
         "t_f": 0.5
       },
-      {
-        "s_n": 0.3,
-        "t_f": -0.4
-      }
+      {}
     ]
   },
   {
@@ -189,7 +182,7 @@
     "answers": [
       "Snap pics of cool stuff",
       "Read every plaque",
-      "Pretend & joke about it"
+      "Don't remember last time I went"
     ],
     "scores": [
       {
@@ -202,9 +195,7 @@
         "j_p": -0.3
       },
       {
-        "e_i": -0.4,
-        "t_f": -0.3,
-        "j_p": 0.3
+        "t_f": -0.1
       }
     ]
   },
@@ -213,8 +204,8 @@
     "question": "Coffee order ☕🎃🤷",
     "answers": [
       "Black, no fuss",
-      "Seasonal latte adventure",
-      "Whatever friend’s having"
+      "Whatever friend’s having",
+      "I don't drink coffee"
     ],
     "scores": [
       {
@@ -222,15 +213,10 @@
         "j_p": -0.1
       },
       {
-        "s_n": 0.3,
-        "j_p": 0.4,
-        "t_f": 0.2
-      },
-      {
         "t_f": 0.5,
-        "e_i": -0.2,
         "j_p": 0.2
-      }
+      },
+      {}
     ]
   }
 ]
