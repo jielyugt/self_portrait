@@ -1,6 +1,7 @@
 # Portrait Generator
-- A fun and probably not accurate program that guesses and uses your MBTI to generate a line-art portrait
-- Give it a try: https://jielyugt.github.io/self_portrait/
+This program collects your characteristics to generate a line-art portrait: https://jielyugt.github.io/self_portrait/
+
+<img src="https://github.com/jielyugt/self_portrait/blob/main/demos/morphing.gif" width=50%>
 
 ## Algorithm
 - The user's approximate MBTI is collected from a small Q&A and stored as `mbti_vector`
@@ -8,5 +9,8 @@
 - As the `mbti_vector` gets updated through Q & A or sliders, the feattures morphs from one to another in realtime
 
 ## Development Tools
-- Shape -> JSON sketch tool: https://jielyugt.github.io/self_portrait/shape_sketcher.html
-- JSON -> Shape preview tool: https://jielyugt.github.io/self_portrait/preview_faces.html
+Shape -> JSON sketch tool: https://jielyugt.github.io/self_portrait/shape_sketcher.html
+<img src="https://github.com/jielyugt/self_portrait/blob/main/demos/sketcher%20tool.png" width=50%>
+
+JSON -> Shape preview tool: https://jielyugt.github.io/self_portrait/preview_faces.html
+<img src="https://github.com/jielyugt/self_portrait/blob/main/demos/preview%20tool.png" width=50%>
