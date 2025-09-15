@@ -1,7 +1,7 @@
 # Portrait Generator
 This program collects your characteristics to generate a line-art portrait: https://jielyugt.github.io/self_portrait/
 
-<img src="https://github.com/jielyugt/self_portrait/blob/main/demos/morphing.gif" width=50%>
+<img src="https://github.com/jielyugt/self_portrait/blob/main/demos/morph_loop.gif" width=50%>
 
 ## Algorithm
 - The user's approximate MBTI is collected from a small Q&A and stored as `mbti_vector`
@@ -10,7 +10,9 @@ This program collects your characteristics to generate a line-art portrait: http
 
 ## Development Tools
 Shape -> JSON sketch tool: https://jielyugt.github.io/self_portrait/shape_sketcher.html
-<img src="https://github.com/jielyugt/self_portrait/blob/main/demos/sketcher%20tool.png" width=50%>
+
+<img src="https://github.com/jielyugt/self_portrait/blob/main/demos/sketcher_tool.png" width=50%>
 
 JSON -> Shape preview tool: https://jielyugt.github.io/self_portrait/preview_faces.html
-<img src="https://github.com/jielyugt/self_portrait/blob/main/demos/preview%20tool.png" width=50%>
+
+<img src="https://github.com/jielyugt/self_portrait/blob/main/demos/preview_tool.png" width=50%>
